@@ -430,6 +430,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <tr><td>train 子集</td><td class="n">27.06</td><td class="n">26.64</td><td class="n">28.59</td><td class="n">26.03 / 26.02 / 29.22</td><td class="n">30.52</td><td class="n">11.47</td><td class="n">0.47</td></tr>
 <tr><td>原团队 SHOES P1 @72.5k (7 mesh)</td><td class="n">28.89</td><td class="n">29.57</td><td class="n">31.53</td><td class="n">28.40 / 29.63 / 31.26</td><td class="n">31.95</td><td class="n">–</td><td class="n">~0.25</td></tr>
 </table></div>
+<p>三条基线的含义：<strong>const</strong> 把每个面涂成其 91 个采样点真值的平均色，是所有“每面一种颜色”方案里误差最小的；<strong>interp</strong> 只用编码器看到的 28 个输入点做线性插值，是一个只会重插值输入、不看上下文的模型的上限；<strong>z=0</strong> 把全部 latent 置零只靠几何解码，用来证明 latent 确实承载了纹理。</p>
 <p>z=0 消融保持在 11 dB 左右，远低于模型本身，说明解码器确实依赖 latent，不存在"几何预测颜色"的捷径。KL 从 5.4 降到 0.68 nats/元素，高于鞋子 run 的 0.25，latent 承载的信息量更大。</p>
 <p>直接读整体 PSNR 的结论是：<strong>10 万步后模型在三个指标上都低于每面平均色基线</strong>，而鞋子 run 在 area 上超过基线 0.5 dB、face 上持平。下面第 4 节解释为什么这个数字不能直接解读为"模型没学到东西"。</p>
 
@@ -606,6 +607,11 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 
 <h2>5. 交互式案例：GT · 重建 · const 同屏对比</h2>
 <p>10 个 held-out mesh（以 Objaverse 物体 ID 标识），每个嵌入一个 three.js 查看器。三个视图共用一个相机：拖拽旋转、滚轮缩放、右键平移，三边同步。左为原始贴图 (GT)，中为模型重建，右为每面平均色基线 (const)。贴图在 GT 的 UV 布局上烘焙成图集：每个材质一个图块（单材质 2048 × 2048，多材质 4096 × 4096 分块），无光照直接显示 albedo，模型默认缓慢自转，拖动时暂停、松手 3 秒后继续。每个案例下方并排给出 UV 空间的烘焙贴图（真值 / 重建），点击图片可打开原始分辨率。</p>
+<div class="callout">
+<p><strong>const 是什么。</strong>它不是模型，是一把尺子：对每个三角面，取该面 91 个采样点真值颜色的平均值，把整个面涂成这一种颜色。每个面只剩 RGB 三个数，没有任何面内变化。</p>
+<p><strong>为什么取 91 个点的平均。</strong>91 个点是本项目里“一个面的纹理”的定义：每面放一个 12 阶重心坐标格点阵（91 点，向质心收缩 10% 避开接缝），cache 存的、损失算的、PSNR 评的都是这 91 个点。评估用均方误差，而使均方误差最小的常数恰好是算术平均，所以“91 点平均色”是所有每面常数方案里误差最小的，即最强的平面基线。</p>
+<p><strong>怎么看。</strong>右视图把每个面抹平，中间重建里比右视图多出来的细节，就是模型真正从 latent 解码出的面内纹理。Objaverse 有 55% 的表面积本来就是单色面，const 在那里是零误差的完美解，这也是整体 PSNR 低于它的原因（见第 4 节）。</p>
+</div>
 
 <div class="case" data-uid="522f50cae5cc4a6c9a7fbd5b4e36bbbf">
 <div class="casehead"><div><strong class="mono">522f50cae5cc4a6c9a7fbd5b4e36bbbf</strong> <span class="meta">99,208 面 · 14 材质 · 图集 4096 px · held-out</span></div>
