@@ -596,7 +596,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 </table></div>
 
 <h2>5. 交互式案例：GT · 重建 · const 同屏对比</h2>
-<p>7 个 held-out mesh（以 Objaverse 物体 ID 标识），每个嵌入一个 three.js 查看器。三个视图共用一个相机：拖拽旋转、滚轮缩放、右键平移，三边同步。左为原始贴图 (GT)，中为模型重建，右为每面平均色基线 (const)。贴图在 GT 的 UV 布局上烘焙成图集：每个材质一个图块（单材质 2048 × 2048，多材质 4096 × 4096 分块），无光照直接显示 albedo，模型默认缓慢自转，拖动时暂停、松手 3 秒后继续。</p>
+<p>10 个 held-out mesh（以 Objaverse 物体 ID 标识），每个嵌入一个 three.js 查看器。三个视图共用一个相机：拖拽旋转、滚轮缩放、右键平移，三边同步。左为原始贴图 (GT)，中为模型重建，右为每面平均色基线 (const)。贴图在 GT 的 UV 布局上烘焙成图集：每个材质一个图块（单材质 2048 × 2048，多材质 4096 × 4096 分块），无光照直接显示 albedo，模型默认缓慢自转，拖动时暂停、松手 3 秒后继续。</p>
 
 <div class="case" data-uid="522f50cae5cc4a6c9a7fbd5b4e36bbbf">
 <div class="casehead"><div><strong class="mono">522f50cae5cc4a6c9a7fbd5b4e36bbbf</strong> <span class="meta">99,208 面 · held-out</span></div>
@@ -625,24 +625,6 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <span class="singlesel" hidden><label><input type="radio" name="m-994aec41" value="0" checked> GT</label><label><input type="radio" name="m-994aec41" value="1"> 重建</label><label><input type="radio" name="m-994aec41" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
-<div class="case" data-uid="b33367ba7bf24a349ec5826b02afe7c4">
-<div class="casehead"><div><strong class="mono">b33367ba7bf24a349ec5826b02afe7c4</strong> <span class="meta">99,999 面 · held-out</span></div>
-<div class="meta">模型 <strong>28.9</strong> dB · const <strong>30.8</strong> dB · <span class="neg">-1.9</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/b33367ba7bf24a349ec5826b02afe7c4/thumb.jpg" alt="b33367ba7bf24a349ec5826b02afe7c4 缩略图" width="480" height="480"><canvas aria-label="b33367ba7bf24a349ec5826b02afe7c4 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
-<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-b33367ba" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-b33367ba"> 单视图</label>
-<span class="singlesel" hidden><label><input type="radio" name="m-b33367ba" value="0" checked> GT</label><label><input type="radio" name="m-b33367ba" value="1"> 重建</label><label><input type="radio" name="m-b33367ba" value="2"> const</label></span>
-<button type="button" class="reset">重置视角</button></div>
-</div>
-<div class="case" data-uid="7b0eac5a78a4499fb4bcc20189a97ec1">
-<div class="casehead"><div><strong class="mono">7b0eac5a78a4499fb4bcc20189a97ec1</strong> <span class="meta">100,000 面 · held-out</span></div>
-<div class="meta">模型 <strong>25.7</strong> dB · const <strong>26.6</strong> dB · <span class="neg">-0.9</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/7b0eac5a78a4499fb4bcc20189a97ec1/thumb.jpg" alt="7b0eac5a78a4499fb4bcc20189a97ec1 缩略图" width="480" height="480"><canvas aria-label="7b0eac5a78a4499fb4bcc20189a97ec1 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
-<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-7b0eac5a" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-7b0eac5a"> 单视图</label>
-<span class="singlesel" hidden><label><input type="radio" name="m-7b0eac5a" value="0" checked> GT</label><label><input type="radio" name="m-7b0eac5a" value="1"> 重建</label><label><input type="radio" name="m-7b0eac5a" value="2"> const</label></span>
-<button type="button" class="reset">重置视角</button></div>
-</div>
 <div class="case" data-uid="ecbab41a56c24b7fa88203f415b56d5a">
 <div class="casehead"><div><strong class="mono">ecbab41a56c24b7fa88203f415b56d5a</strong> <span class="meta">50,026 面 · held-out</span></div>
 <div class="meta">模型 <strong>29.4</strong> dB · const <strong>29.9</strong> dB · <span class="neg">-0.5</span></div></div>
@@ -659,6 +641,51 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
 <div class="ctrl"><label><input type="checkbox" class="spin" id="spin-53bf4971" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-53bf4971"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-53bf4971" value="0" checked> GT</label><label><input type="radio" name="m-53bf4971" value="1"> 重建</label><label><input type="radio" name="m-53bf4971" value="2"> const</label></span>
+<button type="button" class="reset">重置视角</button></div>
+</div>
+<div class="case" data-uid="e610ab728a124989882c209d764f046d">
+<div class="casehead"><div><strong class="mono">e610ab728a124989882c209d764f046d</strong> <span class="meta">8,046 面 · held-out</span></div>
+<div class="meta">模型 <strong>25.2</strong> dB · const <strong>22.2</strong> dB · <span class="pos">+3.0</span></div></div>
+<div class="canvaswrap"><img class="poster" src="cases/e610ab728a124989882c209d764f046d/thumb.jpg" alt="e610ab728a124989882c209d764f046d 缩略图" width="480" height="480"><canvas aria-label="e610ab728a124989882c209d764f046d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-e610ab72" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-e610ab72"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-e610ab72" value="0" checked> GT</label><label><input type="radio" name="m-e610ab72" value="1"> 重建</label><label><input type="radio" name="m-e610ab72" value="2"> const</label></span>
+<button type="button" class="reset">重置视角</button></div>
+</div>
+<div class="case" data-uid="1aac7b79651d4bad96e49c13d3a8975e">
+<div class="casehead"><div><strong class="mono">1aac7b79651d4bad96e49c13d3a8975e</strong> <span class="meta">5,746 面 · held-out</span></div>
+<div class="meta">模型 <strong>20.3</strong> dB · const <strong>18.8</strong> dB · <span class="pos">+1.5</span></div></div>
+<div class="canvaswrap"><img class="poster" src="cases/1aac7b79651d4bad96e49c13d3a8975e/thumb.jpg" alt="1aac7b79651d4bad96e49c13d3a8975e 缩略图" width="480" height="480"><canvas aria-label="1aac7b79651d4bad96e49c13d3a8975e 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-1aac7b79" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-1aac7b79"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-1aac7b79" value="0" checked> GT</label><label><input type="radio" name="m-1aac7b79" value="1"> 重建</label><label><input type="radio" name="m-1aac7b79" value="2"> const</label></span>
+<button type="button" class="reset">重置视角</button></div>
+</div>
+<div class="case" data-uid="209865ec00284af5b34d3faa999e1baf">
+<div class="casehead"><div><strong class="mono">209865ec00284af5b34d3faa999e1baf</strong> <span class="meta">7,434 面 · held-out</span></div>
+<div class="meta">模型 <strong>23.6</strong> dB · const <strong>21.4</strong> dB · <span class="pos">+2.2</span></div></div>
+<div class="canvaswrap"><img class="poster" src="cases/209865ec00284af5b34d3faa999e1baf/thumb.jpg" alt="209865ec00284af5b34d3faa999e1baf 缩略图" width="480" height="480"><canvas aria-label="209865ec00284af5b34d3faa999e1baf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-209865ec" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-209865ec"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-209865ec" value="0" checked> GT</label><label><input type="radio" name="m-209865ec" value="1"> 重建</label><label><input type="radio" name="m-209865ec" value="2"> const</label></span>
+<button type="button" class="reset">重置视角</button></div>
+</div>
+<div class="case" data-uid="9a77cdf9dac043039d516fc3a764e8f5">
+<div class="casehead"><div><strong class="mono">9a77cdf9dac043039d516fc3a764e8f5</strong> <span class="meta">33,384 面 · held-out</span></div>
+<div class="meta">模型 <strong>27.2</strong> dB · const <strong>28.2</strong> dB · <span class="neg">-1.0</span></div></div>
+<div class="canvaswrap"><img class="poster" src="cases/9a77cdf9dac043039d516fc3a764e8f5/thumb.jpg" alt="9a77cdf9dac043039d516fc3a764e8f5 缩略图" width="480" height="480"><canvas aria-label="9a77cdf9dac043039d516fc3a764e8f5 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-9a77cdf9" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-9a77cdf9"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-9a77cdf9" value="0" checked> GT</label><label><input type="radio" name="m-9a77cdf9" value="1"> 重建</label><label><input type="radio" name="m-9a77cdf9" value="2"> const</label></span>
+<button type="button" class="reset">重置视角</button></div>
+</div>
+<div class="case" data-uid="60ef2e59ee2a492a9677c75b745cb9a1">
+<div class="casehead"><div><strong class="mono">60ef2e59ee2a492a9677c75b745cb9a1</strong> <span class="meta">51,731 面 · held-out</span></div>
+<div class="meta">模型 <strong>23.3</strong> dB · const <strong>22.1</strong> dB · <span class="pos">+1.1</span></div></div>
+<div class="canvaswrap"><img class="poster" src="cases/60ef2e59ee2a492a9677c75b745cb9a1/thumb.jpg" alt="60ef2e59ee2a492a9677c75b745cb9a1 缩略图" width="480" height="480"><canvas aria-label="60ef2e59ee2a492a9677c75b745cb9a1 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-60ef2e59" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-60ef2e59"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-60ef2e59" value="0" checked> GT</label><label><input type="radio" name="m-60ef2e59" value="1"> 重建</label><label><input type="radio" name="m-60ef2e59" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <p class="small">模型首次进入视野时才加载（每个案例 2 到 8 MB），加载前显示静态缩略图。若浏览器禁用 WebGL，仅显示缩略图。</p>
