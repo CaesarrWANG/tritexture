@@ -596,68 +596,68 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 </table></div>
 
 <h2>5. 交互式案例：GT · 重建 · const 同屏对比</h2>
-<p>7 个 held-out mesh，每个嵌入一个 three.js 查看器。三个视图共用一个相机：拖拽旋转、滚轮缩放、右键平移，三边同步。左为原始贴图 (GT)，中为模型重建，右为每面平均色基线 (const)。贴图在 GT 的 UV 布局上烘焙成图集：每个材质一个图块（单材质 2048 × 2048，多材质 4096 × 4096 分块），默认无光照以便直接比较 albedo，可切换带光照查看。</p>
+<p>7 个 held-out mesh（以 Objaverse 物体 ID 标识），每个嵌入一个 three.js 查看器。三个视图共用一个相机：拖拽旋转、滚轮缩放、右键平移，三边同步。左为原始贴图 (GT)，中为模型重建，右为每面平均色基线 (const)。贴图在 GT 的 UV 布局上烘焙成图集：每个材质一个图块（单材质 2048 × 2048，多材质 4096 × 4096 分块），无光照直接显示 albedo，模型默认缓慢自转，拖动时暂停、松手 3 秒后继续。</p>
 
 <div class="case" data-uid="522f50cae5cc4a6c9a7fbd5b4e36bbbf">
-<div class="casehead"><div><strong>SPIDERMAN PS4 DEMANDED BUNDLE</strong> <span class="meta">99,208 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">522f50cae5cc4a6c9a7fbd5b4e36bbbf</strong> <span class="meta">99,208 面 · held-out</span></div>
 <div class="meta">模型 <strong>25.4</strong> dB · const <strong>31.3</strong> dB · <span class="neg">-5.8</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/thumb.jpg" alt="SPIDERMAN PS4 DEMANDED BUNDLE 缩略图" width="480" height="480"><canvas aria-label="SPIDERMAN PS4 DEMANDED BUNDLE 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/thumb.jpg" alt="522f50cae5cc4a6c9a7fbd5b4e36bbbf 缩略图" width="480" height="480"><canvas aria-label="522f50cae5cc4a6c9a7fbd5b4e36bbbf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-522f50ca"> 带光照</label><label><input type="checkbox" class="single" id="single-522f50ca"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-522f50ca" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-522f50ca"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-522f50ca" value="0" checked> GT</label><label><input type="radio" name="m-522f50ca" value="1"> 重建</label><label><input type="radio" name="m-522f50ca" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <div class="case" data-uid="6746867266f04bf5aed3b4f0a6df278c">
-<div class="casehead"><div><strong>Soldier</strong> <span class="meta">31,263 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">6746867266f04bf5aed3b4f0a6df278c</strong> <span class="meta">31,263 面 · held-out</span></div>
 <div class="meta">模型 <strong>27.6</strong> dB · const <strong>27.9</strong> dB · <span class="neg">-0.3</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/6746867266f04bf5aed3b4f0a6df278c/thumb.jpg" alt="Soldier 缩略图" width="480" height="480"><canvas aria-label="Soldier 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/6746867266f04bf5aed3b4f0a6df278c/thumb.jpg" alt="6746867266f04bf5aed3b4f0a6df278c 缩略图" width="480" height="480"><canvas aria-label="6746867266f04bf5aed3b4f0a6df278c 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-67468672"> 带光照</label><label><input type="checkbox" class="single" id="single-67468672"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-67468672" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-67468672"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-67468672" value="0" checked> GT</label><label><input type="radio" name="m-67468672" value="1"> 重建</label><label><input type="radio" name="m-67468672" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa">
-<div class="casehead"><div><strong>WWII ambulance rétro futuriste</strong> <span class="meta">48,270 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">994aec4131c243dfa4cd2598e79eabaa</strong> <span class="meta">48,270 面 · held-out</span></div>
 <div class="meta">模型 <strong>26.2</strong> dB · const <strong>27.6</strong> dB · <span class="neg">-1.4</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="WWII ambulance rétro futuriste 缩略图" width="480" height="480"><canvas aria-label="WWII ambulance rétro futuriste 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480"><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-994aec41"> 带光照</label><label><input type="checkbox" class="single" id="single-994aec41"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-994aec41" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-994aec41"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-994aec41" value="0" checked> GT</label><label><input type="radio" name="m-994aec41" value="1"> 重建</label><label><input type="radio" name="m-994aec41" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <div class="case" data-uid="b33367ba7bf24a349ec5826b02afe7c4">
-<div class="casehead"><div><strong>Chó đá 2</strong> <span class="meta">99,999 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">b33367ba7bf24a349ec5826b02afe7c4</strong> <span class="meta">99,999 面 · held-out</span></div>
 <div class="meta">模型 <strong>28.9</strong> dB · const <strong>30.8</strong> dB · <span class="neg">-1.9</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/b33367ba7bf24a349ec5826b02afe7c4/thumb.jpg" alt="Chó đá 2 缩略图" width="480" height="480"><canvas aria-label="Chó đá 2 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/b33367ba7bf24a349ec5826b02afe7c4/thumb.jpg" alt="b33367ba7bf24a349ec5826b02afe7c4 缩略图" width="480" height="480"><canvas aria-label="b33367ba7bf24a349ec5826b02afe7c4 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-b33367ba"> 带光照</label><label><input type="checkbox" class="single" id="single-b33367ba"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-b33367ba" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-b33367ba"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-b33367ba" value="0" checked> GT</label><label><input type="radio" name="m-b33367ba" value="1"> 重建</label><label><input type="radio" name="m-b33367ba" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <div class="case" data-uid="7b0eac5a78a4499fb4bcc20189a97ec1">
-<div class="casehead"><div><strong>cruz andina</strong> <span class="meta">100,000 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">7b0eac5a78a4499fb4bcc20189a97ec1</strong> <span class="meta">100,000 面 · held-out</span></div>
 <div class="meta">模型 <strong>25.7</strong> dB · const <strong>26.6</strong> dB · <span class="neg">-0.9</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/7b0eac5a78a4499fb4bcc20189a97ec1/thumb.jpg" alt="cruz andina 缩略图" width="480" height="480"><canvas aria-label="cruz andina 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/7b0eac5a78a4499fb4bcc20189a97ec1/thumb.jpg" alt="7b0eac5a78a4499fb4bcc20189a97ec1 缩略图" width="480" height="480"><canvas aria-label="7b0eac5a78a4499fb4bcc20189a97ec1 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-7b0eac5a"> 带光照</label><label><input type="checkbox" class="single" id="single-7b0eac5a"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-7b0eac5a" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-7b0eac5a"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-7b0eac5a" value="0" checked> GT</label><label><input type="radio" name="m-7b0eac5a" value="1"> 重建</label><label><input type="radio" name="m-7b0eac5a" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <div class="case" data-uid="ecbab41a56c24b7fa88203f415b56d5a">
-<div class="casehead"><div><strong>Enternity Demon</strong> <span class="meta">50,026 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">ecbab41a56c24b7fa88203f415b56d5a</strong> <span class="meta">50,026 面 · held-out</span></div>
 <div class="meta">模型 <strong>29.4</strong> dB · const <strong>29.9</strong> dB · <span class="neg">-0.5</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/ecbab41a56c24b7fa88203f415b56d5a/thumb.jpg" alt="Enternity Demon 缩略图" width="480" height="480"><canvas aria-label="Enternity Demon 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/ecbab41a56c24b7fa88203f415b56d5a/thumb.jpg" alt="ecbab41a56c24b7fa88203f415b56d5a 缩略图" width="480" height="480"><canvas aria-label="ecbab41a56c24b7fa88203f415b56d5a 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-ecbab41a"> 带光照</label><label><input type="checkbox" class="single" id="single-ecbab41a"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-ecbab41a" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-ecbab41a"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-ecbab41a" value="0" checked> GT</label><label><input type="radio" name="m-ecbab41a" value="1"> 重建</label><label><input type="radio" name="m-ecbab41a" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
 <div class="case" data-uid="53bf4971eccb4d5dbe20db083919c44d">
-<div class="casehead"><div><strong>Hello Neighbor: Hide and Seek - Tiger Aa</strong> <span class="meta">23,610 面 · held-out</span></div>
+<div class="casehead"><div><strong class="mono">53bf4971eccb4d5dbe20db083919c44d</strong> <span class="meta">23,610 面 · held-out</span></div>
 <div class="meta">模型 <strong>25.9</strong> dB · const <strong>23.9</strong> dB · <span class="pos">+2.0</span></div></div>
-<div class="canvaswrap"><img class="poster" src="cases/53bf4971eccb4d5dbe20db083919c44d/thumb.jpg" alt="Hello Neighbor: Hide and Seek - Tiger Aa 缩略图" width="480" height="480"><canvas aria-label="Hello Neighbor: Hide and Seek - Tiger Aa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/53bf4971eccb4d5dbe20db083919c44d/thumb.jpg" alt="53bf4971eccb4d5dbe20db083919c44d 缩略图" width="480" height="480"><canvas aria-label="53bf4971eccb4d5dbe20db083919c44d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels"><span>GT 原始贴图</span><span>重建 (step 100k)</span><span>const 每面平均色</span></div>
-<div class="ctrl"><label><input type="checkbox" class="lit" id="lit-53bf4971"> 带光照</label><label><input type="checkbox" class="single" id="single-53bf4971"> 单视图</label>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-53bf4971" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-53bf4971"> 单视图</label>
 <span class="singlesel" hidden><label><input type="radio" name="m-53bf4971" value="0" checked> GT</label><label><input type="radio" name="m-53bf4971" value="1"> 重建</label><label><input type="radio" name="m-53bf4971" value="2"> const</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
@@ -699,13 +699,16 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
     renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setScissorTest(true);
     const scene = new THREE.Scene();
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x7a7a72, 0.9); const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(1.2, 2.0, 1.6); scene.add(hemi, dir);
     const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50); const HOME = new THREE.Vector3(0.95, 0.55, 1.75); camera.position.copy(HOME);
     const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = !reduced; controls.dampingFactor = 0.08; controls.target.set(0, 0, 0);
+    const spinBox = el.querySelector('.spin'); if (reduced) spinBox.checked = false;
+    controls.autoRotate = spinBox.checked; controls.autoRotateSpeed = 1.2; let resumeT = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(resumeT); });
+    controls.addEventListener('end', () => { clearTimeout(resumeT); resumeT = setTimeout(() => { controls.autoRotate = spinBox.checked; }, 3000); });
+    spinBox.addEventListener('change', () => { controls.autoRotate = spinBox.checked; });
     const tl = new THREE.TextureLoader(); const tex = NAMES.map(n => { const t = tl.load(`cases/${uid}/${n}.jpg`, () => render()); t.encoding = THREE.sRGBEncoding; t.flipY = false; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; });
-    const lit = tex.map(t => new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0.0 }));
     const unlit = tex.map(t => new THREE.MeshBasicMaterial({ map: t }));
-    let mesh = null, useLit = false, single = false, which = 0, visible = true, needs = true;
+    let mesh = null, single = false, which = 0, visible = true, needs = true;
     new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
       g.scene.traverse(o => { if (o.isMesh) { if (!mesh) mesh = o; o.material = unlit[0]; } });
       scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
@@ -717,7 +720,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
       return [w, h];
     }
     function render() {
-      const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = useLit ? lit : unlit;
+      const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = unlit;
       if (single) {
         camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h); mesh.material = mats[which]; renderer.render(scene, camera);
       } else {
@@ -727,7 +730,6 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
     }
     function loop() { if (!visible) return; controls.update(); render(); requestAnimationFrame(loop); }
     controls.addEventListener('change', () => { needs = true; });
-    el.querySelector('.lit').addEventListener('change', e => { useLit = e.target.checked; });
     const sel = el.querySelector('.singlesel'); el.querySelector('.single').addEventListener('change', e => { single = e.target.checked; sel.hidden = !single; el.querySelector('.vlabels').style.visibility = single ? 'hidden' : 'visible'; });
     sel.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', e => { which = +e.target.value; }));
     el.querySelector('.reset').addEventListener('click', () => { camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update(); });
