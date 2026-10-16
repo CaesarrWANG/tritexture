@@ -1,0 +1,418 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TriTex Round Q 续：表 latent</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: a single reading column (72ch) with full-bleed-ish figure rows; quiet lab-notebook treatment, blue/orange series colours */
+:root{--bg:#f7f7f4;--surface:#fcfcfb;--fg:#15171a;--fg2:#5b5f66;--grid:#e3e4e0;--line:#d6d8d3;--accent:#1c5cab;--accent-soft:#e6eef9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--good:#0ca30c;--bad:#d03b3b;
+  --font-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Noto Sans SC",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.65;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-inline:20px}
+header h1{font-size:30px;line-height:1.2;margin:0 0 6px;text-wrap:balance;font-weight:700}
+header .sub{color:var(--fg2);margin:0 0 4px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);margin:0 0 8px}
+h2{font-size:21px;margin:48px 0 12px;padding-top:20px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:16px;margin:22px 0 8px}
+p,li{max-width:72ch} ul{padding-left:1.2em}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0 8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.tile .l{font-size:12.5px;color:var(--fg2)} .tile .v{font-size:26px;font-weight:600;line-height:1.15;margin-top:2px} .tile .d{font-size:12.5px;color:var(--fg2);margin-top:4px}
+.v.bad{color:var(--bad)} .v.good{color:var(--good)}
+.figrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+figure.wide{grid-column:1/-1}
+figcaption{font-size:13px;color:var(--fg2);margin-top:8px;max-width:none}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--fg2);margin:4px 0 0} .legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--k)}
+.legend .dash::before{height:0;border-top:2px dashed var(--fg2);background:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-size:13.5px;min-width:520px;background:var(--surface)} th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--fg2);font-size:12.5px;background:var(--bg)} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono);font-size:12.5px}
+td.pos{color:var(--good);font-weight:600} td.neg{color:var(--bad);font-weight:600}
+code,.mono{font-family:var(--font-mono);font-size:.9em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:0 0 6px} .callout p:last-child{margin:0}
+img{max-width:100%;height:auto;border-radius:4px;display:block}
+.status{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-left:6px}
+
+.case{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;margin:16px 0;min-width:0}
+.casehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px} .meta{color:var(--fg2);font-size:13px} .meta .pos{color:var(--good);font-weight:600} .meta .neg{color:var(--bad);font-weight:600}
+.canvaswrap{position:relative;width:100%;aspect-ratio:3/1.15;background:var(--bg);border-radius:6px;overflow:hidden;max-width:100%}
+.canvaswrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.canvaswrap .poster{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:100%;width:auto;object-fit:contain;opacity:.9}
+.canvaswrap .loadmsg{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--fg2);background:var(--surface);padding:2px 8px;border-radius:999px}
+.vlabels{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;font-size:12.5px;color:var(--fg2);margin-top:6px}
+.ctrl{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--fg2);margin-top:8px} .ctrl label{display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+.ctrl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer} .ctrl button:focus-visible,.ctrl input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p.small{font-size:13px;color:var(--fg2)}
+.texpanel{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.texlbl{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;color:var(--fg2);margin-bottom:8px}
+.texlbl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer}
+.texpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:640px}
+.texpair.big{max-width:none}
+.texpair figure{margin:0;padding:0;border:0;background:none;min-width:0}
+.texpair img{width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#8a8a86;border:1px solid var(--line);border-radius:4px;display:block}
+.texpair figcaption{font-size:12px;color:var(--fg2);margin-top:4px;text-align:center}
+
+@media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
+footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+</style><style>.legend span::before{background:var(--c,var(--fg2))}</style>
+<style>.imgfig img{border:1px solid var(--line)} .defs dt{font-weight:600;margin-top:8px} .defs dd{margin:2px 0 0 0;color:var(--fg2);max-width:72ch} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent)}
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0} .chain .tile .v{font-size:17px}</style>
+</head><body><div class="wrap">
+<header>
+<p class="nav"><a href="index.html">← Round P / Round Q 报告（鞋 → Objaverse，瓶颈定位）</a></p>
+<p class="eyebrow">TriTex · per-triangle texture VAE · 实验汇报 · 2026-10-14 至 10-17</p>
+<h1>Round Q 续：从"概括"到"登记"——latent 结构的重新设计</h1>
+<p class="sub">三天内把"latent 为什么丢面内细节"追到机制层面，并据此把 latent 从"8192 个注意力向量"改成"按锚点、槽位、角点组织的表"。全规模结果：held-out 从旧模型最好的 25.89 dB 升到 28.83 dB，离 28 点输入的上界 29.08 只差 0.25。</p>
+</header>
+
+<div class="tiles">
+<div class="tile"><div class="l">旧模型最佳（200k + 退火）</div><div class="v">25.89 dB</div><div class="d">完整 val 前 32 个，area-PSNR</div></div>
+<div class="tile"><div class="l">表 latent（50k + 退火）</div><div class="v good">28.83 dB</div><div class="d">+2.94 dB；面 28.15，中位数 35.95</div></div>
+<div class="tile"><div class="l">interp 上界（28 点输入）</div><div class="v">29.08 dB</div><div class="d">差 0.25；推理时锚点加倍到 32768 → 29.44</div></div>
+<div class="tile"><div class="l">舞蹈面具细节区</div><div class="v good">29.1 dB</div><div class="d">旧模型 25.4，旁路 28.6</div></div>
+<div class="tile"><div class="l">下一个上界（91 点输入）</div><div class="v">41.6 dB</div><div class="d">Slurm 36202557 训练中</div></div>
+</div>
+
+<div class="callout">
+<p><strong>一句话结论：</strong>VecSet 式 latent 把一片邻域"概括"成一个向量，再凭相似度和距离去"找"信息；对几何场可以，对纹理不行，因为相邻面的颜色互不相关，找的过程就是平均。把 latent 改成按几何地址"登记"的表（写入和读取都按下标），面内细节就保住了。</p>
+<p><strong>证据链：</strong>排除容量、KL、自注意力、数量与对齐 → 注意力足迹与线性探针定位到"写入打散、读取平均" → 三类"找"（注意力、池化、MLP）全部停在 const 水平，唯一有效的改动是按下标读取 → 表 latent 在小规模和全规模上都逼近上界。</p>
+</div>
+
+<h2>1. 这一页和上一页的关系</h2>
+<p><a href="index.html">上一页</a>第 6 节结束在：格点 IO 旁路（没有 latent）达到 interp 上界 31.1 dB，而接上 8192 × 64 的 latent 后掉回 23 dB，和旧 IO 一样；损失发生在"面 → latent → 面"这一段，原因未明。这一页从那里接着讲：先排除，再定位机制，再构造出能保住细节的路径，最后给出新设计和它的结果。</p>
+<p>所有数字除特别说明外均为 held-out val 的 area-weighted PSNR（dB），三个参照：<code>const</code>（每面涂平均色）、<code>interp</code>（28 个输入点线性插值到 91 点的上界）、<code>旁路</code>（格点 IO 直连、无 latent 的实测上界）。</p>
+
+<h2>2. 第一阶段：排除（10 月 14 日）</h2>
+<div class="tablewrap"><table><tr><th>假设</th><th>检验</th><th>结果</th><th>结论</th></tr><tr><td>latent 容量不够</td><td>宽度 64 → 256；差距与纹理信息量的秩相关</td><td>零收益；差距与纹素数负相关 (−0.54)，与面数正相关 (+0.69)，控制面数后信息量相关为零</td><td>不是容量</td></tr><tr><td>低通平滑</td><td>用真值做高斯模糊去拟合模型输出</td><td>最佳 σ 在 0 到 1 纹素之间</td><td>不是简单的空间平滑</td></tr><tr><td>丢在面内还是面间</td><td>按 DC / 低频 AC / 高频 AC 分频段</td><td>三个频段一起丢；细网格丢在 DC（面间），粗网格丢在面内 AC</td><td>丢的是“面级分辨”，与三角剖分尺度绑定</td></tr><tr><td>latent 数量不够、锚点没对齐</td><td>oracle：一面一个 latent，锚点放在面质心；对照 FPS 8192</td><td>oracle 三个面数档全部落后对照</td><td>不是数量，也不是对齐</td></tr></table></div>
+<div class="figrow"><figure class="wide imgfig"><img src="roundq/gap_vs_info.jpg" alt="差距与五种每 latent 信息量代理变量的散点图" loading="lazy">
+<figcaption>141 个 val mesh。横轴是每个 latent 摊到的量，纵轴是旁路与完整模型的 PSNR 差距。只有"面数"单调（左列），"有纹理面积、纹素数、AC 能量"全部负相关：信息越少的 mesh 只要面多，差距越大。丢的不是内容，是按面寻址。</figcaption></figure></div>
+
+<h2>3. 第二阶段：定位机制（10 月 14 日晚）</h2>
+<div class="tablewrap"><table><tr><th>检验</th><th>结果</th><th>推论</th></tr><tr><td>注意力足迹</td><td>解码时每个面读 5 到 12 个 latent，自己最近的只占 0.19（oracle 中专属 latent 占 0.51）；编码时 oracle 的一个 latent 聚合约 170 个面</td><td>读写都是跨面加权平均</td></tr><tr><td>线性探针</td><td>oracle 的 latent 里能线性读出面的平均色（25 到 33 dB），模型自己只解出 17 到 19；FPS 模型最近的 latent 里读不出（≈ 均值基线 12.5）</td><td>oracle：信息在、读不回；FPS：写入时就已打散</td></tr><tr><td>推理时硬掩码只读自己的 latent</td><td>oracle 不训练整体 +1 dB、DC +2.5 dB；FPS 模型掉到 14 dB</td><td>跨面读取是因果性的</td></tr><tr><td>掩码微调 5k 步</td><td>停在 const 水平 23.3；latent 里只有 DC，28 点格点线性读只有 15 dB</td><td>读修好后暴露出写入也丢 AC</td></tr></table></div>
+
+<h2>4. 第三阶段：构造能保住细节的路径（10 月 15 日）</h2>
+<p>在 ≤ 8192 面的子集上，每个变体训 5000 步，逐项替换"面 → latent → 面"的写法和读法。前七行都把"信息放在哪、从哪取"交给网络去决定，全部停在 const 水平；只有最后两行按几何下标读取。</p>
+<div class="tablewrap"><table><tr><th>变体</th><th class=n>面积 PSNR</th><th>排除了什么</th></tr><tr><td>Voronoi 固定归属，格子内池化写入，MLP 读最近 4 个 latent</td><td class=n>21.7–22.1</td><td>固定归属本身不够</td></tr><tr><td>同上，去掉自注意力、256 维、无 KL</td><td class=n>21.7</td><td>自注意力、宽度、KL 不是主因</td></tr><tr><td>槽位无损写入 + MLP 读</td><td class=n>21.9–23.1</td><td>写入无损也不够</td></tr><tr><td>一面一格 + 槽位写入 + 1024 维 + 只读自己的 latent</td><td class=n>22.0</td><td>路径上零混合仍丢 5 dB：读取无法“认出”自己那一块</td></tr><tr><td>槽位写入 + 旧的注意力读取</td><td class=n>20.0</td><td>注意力同样读不出槽位里的块</td></tr><tr><td>一面一格 + <strong>按下标对齐读</strong>（MLP）</td><td class=n pos>24.9 → 25.4 (10k)</td><td>对齐是唯一有效的改动</td></tr><tr><td>一面一格 + <strong>按下标对齐、线性读</strong></td><td class=n pos>26.0 左右；96 mesh 稳评测与旁路差 0.5–0.9</td><td>接近无损</td></tr></table></div>
+<p class="small">参照：const 23.6，interp 27.0，旁路 27.4。同一现象在面内层级早已出现过：旧的面编码器用注意力池化 28 个采样点丢 AC，格点编码器按固定顺序拼接则无损。</p>
+<div class="figrow"><figure class="wide imgfig"><img src="roundq/dog_voronoi6.jpg" alt="狗皮毛区域六路对比" loading="lazy">
+<figcaption>Dog（9a77cdf9）皮毛区，从左到右：真值、旧模型 200k+退火、完整格点 22.5k、格点旁路、Voronoi 池化版 12.5k、表 latent 的 2k 早期快照。池化版是按面分的平色块，连面间平均色也错；表 latent 2k 步时毛发走向已出现但颜色还没稳。</figcaption></figure></div>
+
+<h2>5. 为什么 VecSet 适合几何、不适合纹理</h2>
+<dl class="defs">
+<dt>概括</dt><dd>VecSet 让每个 latent 用注意力加权平均一片邻域，用的时候再按相似度和距离加权取回。占据场和 SDF 连续、低频，邻居可以互相替代，平均掉的只是微小起伏；评价指标（IoU、Chamfer）也不在乎一点糊。</dd>
+<dt>登记</dt><dd>纹理是分段、高熵、不连续的，相邻两个面可以完全无关。要保住每个面的内容，只能把它放在一个由几何决定的地址上，用的时候按地址取。地址不是学出来的，所以不会漂、不会混。</dd>
+<dt>几何也有同样的毛病</dt><dd>Shape2VecSet 系列在薄结构和锐边上一直有损失，Dora 专门加了锐边采样。锐边就是几何里的不连续，纹理几乎处处是锐边。</dd>
+</dl>
+
+<h2>6. 新设计：表 latent</h2>
+<div class="tablewrap"><table><tr><th>项目</th><th>旧模型</th><th>表 latent</th></tr><tr><td>锚点</td><td>surface FPS，固定 8192</td><td>面质心上做 FPS，N = min(上限, 面数)，锚点数跟面数走</td></tr><tr><td>格子</td><td>无概念：面与 latent 的关系由 softmax 临时决定</td><td>每个面归离它最近的锚点（Voronoi 区域），由几何算出，前向开始时确定</td></tr><tr><td>latent 形状</td><td>每锚点一个 64 维向量</td><td>每锚点一张表：槽位 × 3 角点 × 通道；全规模配置 (8+1) × 3 × 32 = 864 维</td></tr><tr><td>写入</td><td>交叉注意力加权求和</td><td>格子里的面按到锚点的距离排序占一个槽位，三个角点 token 各过一层线性写进自己的块；超出槽位的面平均进溢出槽</td></tr><tr><td>latent 自注意力</td><td>编码 4 层、解码 12 层</td><td>相同层数，作用在拍平的表上，输出按块加回（零初始化残差）；对齐路径不经过它</td></tr><tr><td>KL</td><td>对 64 维向量</td><td>按块，每个角点块各自 mu / logvar</td></tr><tr><td>读取</td><td>交叉注意力加权求和</td><td>取自己的（槽位，角点）块过一层线性，加角点几何查询，进格点解码器</td></tr><tr><td>参数量</td><td>2.19 亿</td><td>2.12 亿</td></tr></table></div>
+<p>代码：<code>tritex/models/vecset_full.py</code> 中 <code>set_io=table</code>（<code>_slot_assign</code>、<code>_table_write</code>、解码分支），配置项 <code>vor_slots</code>、<code>tab_embed</code>、<code>tab_corner_dim</code>、<code>query_mode=fps</code>。</p>
+
+<h2>7. 小规模验证（≤ 8192 面子集，10k 步）</h2>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 520 280" width="100%" role="img" aria-label="≤ 8192 面子集，val 前 32 个：area-PSNR (dB)" style="max-width:520px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">≤ 8192 面子集，val 前 32 个：area-PSNR (dB)</text>
+<line x1="44" x2="506" y1="214.9" y2="214.9" stroke="var(--grid)"/>
+<text x="38" y="218.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="506" y1="166.1" y2="166.1" stroke="var(--grid)"/>
+<text x="38" y="169.6" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="506" y1="117.2" y2="117.2" stroke="var(--grid)"/>
+<text x="38" y="120.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="506" y1="68.3" y2="68.3" stroke="var(--grid)"/>
+<text x="38" y="71.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<text x="104.3" y="262" text-anchor="middle" fill="var(--fg2)">2.5k</text>
+<text x="204.7" y="262" text-anchor="middle" fill="var(--fg2)">5k</text>
+<text x="305.1" y="262" text-anchor="middle" fill="var(--fg2)">7.5k</text>
+<text x="405.6" y="262" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="506.0" y="262" text-anchor="middle" fill="var(--fg2)">12.5k</text>
+<text x="275" y="276" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,138) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<line x1="44" x2="506" y1="44.9" y2="44.9" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="506" y="40.9" text-anchor="end" fill="var(--fg2)">interp 26.96</text>
+<line x1="44" x2="506" y1="126.5" y2="126.5" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="506" y="122.5" text-anchor="end" fill="var(--fg2)">const 23.62</text>
+<polyline points="44.0,130.0 84.2,144.9 124.3,107.5 164.5,88.8 204.7,93.4 244.9,80.1 285.0,67.4 325.2,62.9 365.4,61.4 405.6,61.4" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="130.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 1k · 23.48 dB</title></circle>
+<circle cx="84.2" cy="144.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 2k · 22.86 dB</title></circle>
+<circle cx="124.3" cy="107.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 3k · 24.40 dB</title></circle>
+<circle cx="164.5" cy="88.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 4k · 25.16 dB</title></circle>
+<circle cx="204.7" cy="93.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 5k · 24.97 dB</title></circle>
+<circle cx="244.9" cy="80.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 6k · 25.52 dB</title></circle>
+<circle cx="285.0" cy="67.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 7k · 26.04 dB</title></circle>
+<circle cx="325.2" cy="62.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 8k · 26.22 dB</title></circle>
+<circle cx="365.4" cy="61.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 9k · 26.28 dB</title></circle>
+<circle cx="405.6" cy="61.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 质心 FPS 4096 · 10k · 26.29 dB</title></circle>
+<text x="399.6" y="53.4" text-anchor="end" fill="var(--s1)" font-weight="600">表 latent · 质心 FPS 4096 26.29</text>
+<polyline points="44.0,148.1 84.2,114.3 124.3,100.4 164.5,91.0 204.7,95.9 244.9,84.3 285.0,83.4 325.2,74.1 365.4,69.5 405.6,74.9" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="148.1" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 1k · 22.74 dB</title></circle>
+<circle cx="84.2" cy="114.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 2k · 24.12 dB</title></circle>
+<circle cx="124.3" cy="100.4" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 3k · 24.69 dB</title></circle>
+<circle cx="164.5" cy="91.0" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 4k · 25.07 dB</title></circle>
+<circle cx="204.7" cy="95.9" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 5k · 24.87 dB</title></circle>
+<circle cx="244.9" cy="84.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 6k · 25.35 dB</title></circle>
+<circle cx="285.0" cy="83.4" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 7k · 25.38 dB</title></circle>
+<circle cx="325.2" cy="74.1" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 8k · 25.76 dB</title></circle>
+<circle cx="365.4" cy="69.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 9k · 25.95 dB</title></circle>
+<circle cx="405.6" cy="74.9" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · surface FPS 8192 · 10k · 25.73 dB</title></circle>
+<text x="399.6" y="66.9" text-anchor="end" fill="var(--s3)" font-weight="600">表 latent · surface FPS 8192 25.73</text>
+<polyline points="104.3,211.5 204.7,180.2 305.1,176.2 405.6,174.7 506.0,164.3" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="104.3" cy="211.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>Voronoi 池化写入 · 2.5k · 20.14 dB</title></circle>
+<circle cx="204.7" cy="180.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>Voronoi 池化写入 · 5k · 21.42 dB</title></circle>
+<circle cx="305.1" cy="176.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>Voronoi 池化写入 · 7.5k · 21.59 dB</title></circle>
+<circle cx="405.6" cy="174.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>Voronoi 池化写入 · 10k · 21.65 dB</title></circle>
+<circle cx="506.0" cy="164.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>Voronoi 池化写入 · 12.5k · 22.07 dB</title></circle>
+<text x="500.0" y="156.3" text-anchor="end" fill="var(--s4)" font-weight="600">Voronoi 池化写入 22.07</text>
+<polyline points="104.3,231.1 204.7,199.7 305.1,180.7" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="104.3" cy="231.1" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 2.5k · 19.34 dB</title></circle>
+<circle cx="204.7" cy="199.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 5k · 20.62 dB</title></circle>
+<circle cx="305.1" cy="180.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 7.5k · 21.40 dB</title></circle>
+<text x="299.1" y="172.7" text-anchor="end" fill="var(--s2)" font-weight="600">旧注意力模型 21.40</text>
+</svg><div class="legend"><span style="--c:var(--s1)">表 latent · 质心 FPS 4096</span><span style="--c:var(--s3)">表 latent · surface FPS 8192</span><span style="--c:var(--s4)">Voronoi 池化写入</span><span style="--c:var(--s2)">旧注意力模型</span><span class="dash">const / interp</span></div>
+<figcaption>同一子集、同样的自注意力层数和 KL。表 latent 两千步就越过 const，旧模型 7500 步仍低于 const 2 dB。</figcaption></figure></div>
+<div class="tablewrap"><table><tr><th>配置（10k 步）</th><th class=n>训练中 val 32 个</th><th class=n>结束时大 val 集</th><th class=n>离 interp</th><th>说明</th></tr><tr><td>一面一格 VAE（质心 FPS，KL + 自注意力）</td><td class=n>26.02</td><td class=n>23.98</td><td class=n>−0.30</td><td>和无 KL 无自注意力的 det 对照 (26.12 / 23.97) 重合</td></tr><tr><td>surface FPS 8192（62% 的面共用格子）</td><td class=n>25.73</td><td class=n>23.79</td><td class=n>−0.49</td><td>共用格子的代价不到 0.5 dB</td></tr><tr><td>锚点减半，N = 4096</td><td class=n pos>26.29</td><td class=n pos>24.13</td><td class=n>−0.15</td><td>每格约 2 个面，毫无损失</td></tr><tr><td>槽位数 = 1（surface FPS）</td><td class=n>25.42</td><td class=n>23.75</td><td class=n>−0.53</td><td>小 mesh 上槽位几乎不起作用，价值在大 mesh</td></tr><tr><td>91 点输入（N = 4096）</td><td class=n pos>26.36</td><td class=n pos>24.72</td><td class=n>+0.44</td><td>越过 28 点输入的上界 24.28；自己的上界是 38.6</td></tr><tr><td>16 通道（N = 4096）</td><td class=n>26.13</td><td class=n>23.90</td><td class=n>−0.38</td><td>通道减半只掉 0.2 dB</td></tr><tr><td>旧注意力模型（对照，7.5k 步）</td><td class=n neg>21.40</td><td class=n>—</td><td class=n>−5.6</td><td></td></tr></table></div>
+<p class="small">大 val 集：const 20.67，interp 24.28。所有诊断实验的训练器、学习率、数据与对照组相同；有效 batch 12（3 张卡），对照组 16。</p>
+
+<h2>8. 全规模结果（完整 Objaverse，最多 20 万面，Slurm 4 节点）</h2>
+<p>配置：质心 FPS 上限 16384，8 槽位，每块 32 通道，28 点输入，50k 步常数学习率，再接 10k 余弦退火。与旧注意力模型 <code>roundQ_full_lattice</code>（同为格点面 IO）逐步对比。</p>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 520 280" width="100%" role="img" aria-label="完整数据，val 前 32 个 mesh：area-PSNR (dB)" style="max-width:520px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">完整数据，val 前 32 个 mesh：area-PSNR (dB)</text>
+<line x1="44" x2="506" y1="238.0" y2="238.0" stroke="var(--grid)"/>
+<text x="38" y="241.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="506" y1="195.5" y2="195.5" stroke="var(--grid)"/>
+<text x="38" y="199.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="506" y1="152.9" y2="152.9" stroke="var(--grid)"/>
+<text x="38" y="156.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="506" y1="110.4" y2="110.4" stroke="var(--grid)"/>
+<text x="38" y="113.9" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="506" y1="67.9" y2="67.9" stroke="var(--grid)"/>
+<text x="38" y="71.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
+<text x="104.3" y="262" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="184.6" y="262" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="265.0" y="262" text-anchor="middle" fill="var(--fg2)">30k</text>
+<text x="345.3" y="262" text-anchor="middle" fill="var(--fg2)">40k</text>
+<text x="425.7" y="262" text-anchor="middle" fill="var(--fg2)">50k</text>
+<text x="506.0" y="262" text-anchor="middle" fill="var(--fg2)">60k</text>
+<text x="275" y="276" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,138) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<line x1="44" x2="506" y1="44.9" y2="44.9" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="506" y="40.9" text-anchor="end" fill="var(--fg2)">interp 上界(28 点输入) 29.08</text>
+<line x1="44" x2="506" y1="150.8" y2="150.8" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="506" y="146.8" text-anchor="end" fill="var(--fg2)">const 24.10</text>
+<polyline points="44.0,121.6 64.1,113.4 84.2,93.4 104.3,93.4 124.3,77.1 144.4,70.4 164.5,82.0 184.6,64.2 204.7,69.2 224.8,81.3 244.9,74.2 265.0,66.7 285.0,69.8 305.1,68.7 325.2,68.7 345.3,61.1 365.4,64.0 385.5,61.9 405.6,64.2 425.7,66.1" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="121.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 2k · 25.47 dB</title></circle>
+<circle cx="64.1" cy="113.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 5k · 25.86 dB</title></circle>
+<circle cx="84.2" cy="93.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 7k · 26.80 dB</title></circle>
+<circle cx="104.3" cy="93.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 10k · 26.80 dB</title></circle>
+<circle cx="124.3" cy="77.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 12k · 27.57 dB</title></circle>
+<circle cx="144.4" cy="70.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 15k · 27.88 dB</title></circle>
+<circle cx="164.5" cy="82.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 17k · 27.33 dB</title></circle>
+<circle cx="184.6" cy="64.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 20k · 28.17 dB</title></circle>
+<circle cx="204.7" cy="69.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 22k · 27.94 dB</title></circle>
+<circle cx="224.8" cy="81.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 25k · 27.37 dB</title></circle>
+<circle cx="244.9" cy="74.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 27k · 27.70 dB</title></circle>
+<circle cx="265.0" cy="66.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 30k · 28.06 dB</title></circle>
+<circle cx="285.0" cy="69.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 32k · 27.91 dB</title></circle>
+<circle cx="305.1" cy="68.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 35k · 27.96 dB</title></circle>
+<circle cx="325.2" cy="68.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 37k · 27.96 dB</title></circle>
+<circle cx="345.3" cy="61.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 40k · 28.32 dB</title></circle>
+<circle cx="365.4" cy="64.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 42k · 28.18 dB</title></circle>
+<circle cx="385.5" cy="61.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 45k · 28.28 dB</title></circle>
+<circle cx="405.6" cy="64.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 47k · 28.17 dB</title></circle>
+<circle cx="425.7" cy="66.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>表 latent · 50k · 28.08 dB</title></circle>
+<text x="419.7" y="58.1" text-anchor="end" fill="var(--s1)" font-weight="600">表 latent 28.08</text>
+<polyline points="44.0,231.1 64.1,225.6 84.2,213.9 104.3,219.9 124.3,204.5 144.4,199.4 164.5,202.2 184.6,191.2 204.7,195.9 224.8,189.3 244.9,187.5 265.0,186.4 285.0,183.2 305.1,179.1 325.2,180.7 345.3,177.8 365.4,173.4 385.5,170.7 405.6,170.3 425.7,169.5" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="231.1" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 2k · 20.32 dB</title></circle>
+<circle cx="64.1" cy="225.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 5k · 20.58 dB</title></circle>
+<circle cx="84.2" cy="213.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 7k · 21.14 dB</title></circle>
+<circle cx="104.3" cy="219.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 10k · 20.85 dB</title></circle>
+<circle cx="124.3" cy="204.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 12k · 21.58 dB</title></circle>
+<circle cx="144.4" cy="199.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 15k · 21.82 dB</title></circle>
+<circle cx="164.5" cy="202.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 17k · 21.68 dB</title></circle>
+<circle cx="184.6" cy="191.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 20k · 22.20 dB</title></circle>
+<circle cx="204.7" cy="195.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 22k · 21.98 dB</title></circle>
+<circle cx="224.8" cy="189.3" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 25k · 22.29 dB</title></circle>
+<circle cx="244.9" cy="187.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 27k · 22.38 dB</title></circle>
+<circle cx="265.0" cy="186.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 30k · 22.43 dB</title></circle>
+<circle cx="285.0" cy="183.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 32k · 22.57 dB</title></circle>
+<circle cx="305.1" cy="179.1" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 35k · 22.77 dB</title></circle>
+<circle cx="325.2" cy="180.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 37k · 22.69 dB</title></circle>
+<circle cx="345.3" cy="177.8" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 40k · 22.83 dB</title></circle>
+<circle cx="365.4" cy="173.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 42k · 23.04 dB</title></circle>
+<circle cx="385.5" cy="170.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 45k · 23.16 dB</title></circle>
+<circle cx="405.6" cy="170.3" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 47k · 23.18 dB</title></circle>
+<circle cx="425.7" cy="169.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>旧注意力模型 · 50k · 23.22 dB</title></circle>
+<text x="419.7" y="161.5" text-anchor="end" fill="var(--s2)" font-weight="600">旧注意力模型 23.22</text>
+<polyline points="445.7,55.6 465.8,58.5 485.9,51.4 506.0,50.2" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="445.7" cy="55.6" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 + 退火 · 52k · 28.58 dB</title></circle>
+<circle cx="465.8" cy="58.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 + 退火 · 55k · 28.44 dB</title></circle>
+<circle cx="485.9" cy="51.4" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 + 退火 · 57k · 28.77 dB</title></circle>
+<circle cx="506.0" cy="50.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>表 + 退火 · 60k · 28.83 dB</title></circle>
+<text x="500.0" y="42.2" text-anchor="end" fill="var(--s3)" font-weight="600">表 + 退火 28.83</text>
+</svg><div class="legend"><span style="--c:var(--s1)">表 latent</span><span style="--c:var(--s2)">旧注意力模型</span><span style="--c:var(--s3)">表 + 10k 退火</span><span class="dash">const / interp</span></div>
+<figcaption>表 latent 7.5k 步 (26.80) 已超过旧模型 50k 的终值 (23.22)；20k 后进入平台 28.1 到 28.3，说明剩余差距不是训练量问题；退火再加 0.75。</figcaption></figure></div>
+<div class="tablewrap"><table><tr><th></th><th class=n>面积</th><th class=n>面</th><th class=n>资产中位数</th></tr><tr><td>const</td><td class=n>24.10</td><td class=n>25.92</td><td class=n>29.58</td></tr><tr><td>旧注意力模型 50k</td><td class=n neg>23.22</td><td class=n>24.27</td><td class=n>28.06</td></tr><tr><td>旧注意力模型 200k + 退火（旧配方最佳）</td><td class=n>25.89</td><td class=n>27.04</td><td class=n>31.12</td></tr><tr><td>表 latent 50k</td><td class=n>28.08</td><td class=n>27.83</td><td class=n>35.07</td></tr><tr><td><strong>表 latent 50k + 退火</strong></td><td class=n pos>28.83</td><td class=n pos>28.15</td><td class=n pos>35.95</td></tr><tr><td>interp 上界（28 点输入）</td><td class=n>29.08</td><td class=n>—</td><td class=n>—</td></tr></table></div>
+<h3>8.1 按面数分档</h3>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 640 280" width="100%" role="img" aria-label="完整 val 按面数分档，每档 24 个 mesh：area-PSNR 全部面 (dB)" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">完整 val 按面数分档，每档 24 个 mesh：area-PSNR 全部面 (dB)</text>
+<line x1="44" x2="626" y1="240.0" y2="240.0" stroke="var(--grid)"/>
+<text x="38" y="243.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="626" y1="207.2" y2="207.2" stroke="var(--grid)"/>
+<text x="38" y="210.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22.5</text>
+<line x1="44" x2="626" y1="174.4" y2="174.4" stroke="var(--grid)"/>
+<text x="38" y="177.9" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="626" y1="141.6" y2="141.6" stroke="var(--grid)"/>
+<text x="38" y="145.1" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">27.5</text>
+<line x1="44" x2="626" y1="108.8" y2="108.8" stroke="var(--grid)"/>
+<text x="38" y="112.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<line x1="44" x2="626" y1="75.9" y2="75.9" stroke="var(--grid)"/>
+<text x="38" y="79.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">32.5</text>
+<line x1="44" x2="626" y1="43.1" y2="43.1" stroke="var(--grid)"/>
+<text x="38" y="46.6" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">35</text>
+<text transform="translate(11,135) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<text x="141.0" y="256" text-anchor="middle" fill="var(--fg)">≤ 8192 面 (中位 2.4k)</text>
+<path d="M77.0,240.0 v-36.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v36.4 z" fill="var(--grid)"><title>≤ 8192 面 (中位 2.4k) · const · 23.08</title></path>
+<text x="89.0" y="194.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">23.1</text>
+<path d="M103.0,240.0 v-81.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v81.1 z" fill="var(--fg2)"><title>≤ 8192 面 (中位 2.4k) · interp 上界 · 26.48</title></path>
+<text x="115.0" y="149.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.5</text>
+<path d="M129.0,240.0 v-68.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v68.1 z" fill="var(--s2)"><title>≤ 8192 面 (中位 2.4k) · 旧模型 200k+退火 · 25.49</title></path>
+<text x="141.0" y="162.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.5</text>
+<path d="M155.0,240.0 v-87.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v87.4 z" fill="var(--s1)"><title>≤ 8192 面 (中位 2.4k) · 表 latent 50k+退火 · 26.96</title></path>
+<text x="167.0" y="143.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.0</text>
+<path d="M181.0,240.0 v-83.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v83.7 z" fill="var(--s3)"><title>≤ 8192 面 (中位 2.4k) · 旁路(无 latent) · 26.68</title></path>
+<text x="193.0" y="147.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.7</text>
+<text x="141.0" y="270" text-anchor="middle" fill="var(--fg2)">每格 < 1 面</text>
+<text x="335.0" y="256" text-anchor="middle" fill="var(--fg)">8k–30k (中位 24k)</text>
+<path d="M271.0,240.0 v-49.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v49.8 z" fill="var(--grid)"><title>8k–30k (中位 24k) · const · 24.10</title></path>
+<text x="283.0" y="181.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.1</text>
+<path d="M297.0,240.0 v-127.9 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v127.9 z" fill="var(--fg2)"><title>8k–30k (中位 24k) · interp 上界 · 30.05</title></path>
+<text x="309.0" y="103.1" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">30.1</text>
+<path d="M323.0,240.0 v-84.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v84.6 z" fill="var(--s2)"><title>8k–30k (中位 24k) · 旧模型 200k+退火 · 26.75</title></path>
+<text x="335.0" y="146.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.8</text>
+<path d="M349.0,240.0 v-130.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v130.0 z" fill="var(--s1)"><title>8k–30k (中位 24k) · 表 latent 50k+退火 · 30.21</title></path>
+<text x="361.0" y="101.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">30.2</text>
+<path d="M375.0,240.0 v-124.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v124.4 z" fill="var(--s3)"><title>8k–30k (中位 24k) · 旁路(无 latent) · 29.78</title></path>
+<text x="387.0" y="106.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">29.8</text>
+<text x="335.0" y="270" text-anchor="middle" fill="var(--fg2)">每格约 1.5 面</text>
+<text x="529.0" y="256" text-anchor="middle" fill="var(--fg)">30k–130k (中位 72k)</text>
+<path d="M465.0,240.0 v-76.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v76.7 z" fill="var(--grid)"><title>30k–130k (中位 72k) · const · 26.15</title></path>
+<text x="477.0" y="154.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.1</text>
+<path d="M491.0,240.0 v-171.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v171.2 z" fill="var(--fg2)"><title>30k–130k (中位 72k) · interp 上界 · 33.35</title></path>
+<text x="503.0" y="59.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">33.4</text>
+<path d="M517.0,240.0 v-93.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v93.8 z" fill="var(--s2)"><title>30k–130k (中位 72k) · 旧模型 200k+退火 · 27.45</title></path>
+<text x="529.0" y="137.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.4</text>
+<path d="M543.0,240.0 v-152.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v152.6 z" fill="var(--s1)"><title>30k–130k (中位 72k) · 表 latent 50k+退火 · 31.93</title></path>
+<text x="555.0" y="78.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">31.9</text>
+<path d="M569.0,240.0 v-167.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v167.1 z" fill="var(--s3)"><title>30k–130k (中位 72k) · 旁路(无 latent) · 33.04</title></path>
+<text x="581.0" y="63.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">33.0</text>
+<text x="529.0" y="270" text-anchor="middle" fill="var(--fg2)">每格约 4.4 面</text>
+</svg><div class="legend"><span style="--c:var(--grid)">const</span><span style="--c:var(--fg2)">interp</span><span style="--c:var(--s2)">旧模型 200k+退火</span><span style="--c:var(--s1)">表 latent 50k+退火</span><span style="--c:var(--s3)">旁路</span></div>
+<figcaption>每格面数不超过 2 时，表 latent 与旁路持平或略高；30k–130k 面的档每格约 4.4 面，部分进溢出槽，面积指标低旁路 1.1 dB。</figcaption></figure>
+<figure class="wide"><svg viewBox="0 0 640 280" width="100%" role="img" aria-label="同上，仅有纹理面 (dB)" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">同上，仅有纹理面 (dB)</text>
+<line x1="44" x2="626" y1="225.0" y2="225.0" stroke="var(--grid)"/>
+<text x="38" y="228.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">15</text>
+<line x1="44" x2="626" y1="187.5" y2="187.5" stroke="var(--grid)"/>
+<text x="38" y="191.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">17.5</text>
+<line x1="44" x2="626" y1="150.0" y2="150.0" stroke="var(--grid)"/>
+<text x="38" y="153.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="626" y1="112.5" y2="112.5" stroke="var(--grid)"/>
+<text x="38" y="116.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22.5</text>
+<line x1="44" x2="626" y1="75.0" y2="75.0" stroke="var(--grid)"/>
+<text x="38" y="78.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="626" y1="37.5" y2="37.5" stroke="var(--grid)"/>
+<text x="38" y="41.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">27.5</text>
+<text transform="translate(11,135) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<text x="141.0" y="256" text-anchor="middle" fill="var(--fg)">≤ 8192 面 (中位 2.4k)</text>
+<path d="M77.0,240.0 v-36.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v36.2 z" fill="var(--grid)"><title>≤ 8192 面 (中位 2.4k) · const · 16.68</title></path>
+<text x="89.0" y="194.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">16.7</text>
+<path d="M103.0,240.0 v-86.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v86.3 z" fill="var(--fg2)"><title>≤ 8192 面 (中位 2.4k) · interp 上界 · 20.02</title></path>
+<text x="115.0" y="144.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.0</text>
+<path d="M129.0,240.0 v-72.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v72.5 z" fill="var(--s2)"><title>≤ 8192 面 (中位 2.4k) · 旧模型 200k+退火 · 19.10</title></path>
+<text x="141.0" y="158.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">19.1</text>
+<path d="M155.0,240.0 v-93.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v93.3 z" fill="var(--s1)"><title>≤ 8192 面 (中位 2.4k) · 表 latent 50k+退火 · 20.49</title></path>
+<text x="167.0" y="137.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.5</text>
+<path d="M181.0,240.0 v-91.9 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v91.9 z" fill="var(--s3)"><title>≤ 8192 面 (中位 2.4k) · 旁路(无 latent) · 20.39</title></path>
+<text x="193.0" y="139.1" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.4</text>
+<text x="335.0" y="256" text-anchor="middle" fill="var(--fg)">8k–30k (中位 24k)</text>
+<path d="M271.0,240.0 v-38.9 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v38.9 z" fill="var(--grid)"><title>8k–30k (中位 24k) · const · 16.86</title></path>
+<text x="283.0" y="192.1" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">16.9</text>
+<path d="M297.0,240.0 v-126.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v126.2 z" fill="var(--fg2)"><title>8k–30k (中位 24k) · interp 上界 · 22.68</title></path>
+<text x="309.0" y="104.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">22.7</text>
+<path d="M323.0,240.0 v-83.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v83.4 z" fill="var(--s2)"><title>8k–30k (中位 24k) · 旧模型 200k+退火 · 19.83</title></path>
+<text x="335.0" y="147.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">19.8</text>
+<path d="M349.0,240.0 v-129.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v129.3 z" fill="var(--s1)"><title>8k–30k (中位 24k) · 表 latent 50k+退火 · 22.89</title></path>
+<text x="361.0" y="101.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">22.9</text>
+<path d="M375.0,240.0 v-126.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v126.8 z" fill="var(--s3)"><title>8k–30k (中位 24k) · 旁路(无 latent) · 22.72</title></path>
+<text x="387.0" y="104.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">22.7</text>
+<text x="529.0" y="256" text-anchor="middle" fill="var(--fg)">30k–130k (中位 72k)</text>
+<path d="M465.0,240.0 v-54.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v54.4 z" fill="var(--grid)"><title>30k–130k (中位 72k) · const · 17.89</title></path>
+<text x="477.0" y="176.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">17.9</text>
+<path d="M491.0,240.0 v-158.9 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v158.9 z" fill="var(--fg2)"><title>30k–130k (中位 72k) · interp 上界 · 24.86</title></path>
+<text x="503.0" y="72.1" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.9</text>
+<path d="M517.0,240.0 v-91.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v91.3 z" fill="var(--s2)"><title>30k–130k (中位 72k) · 旧模型 200k+退火 · 20.35</title></path>
+<text x="529.0" y="139.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.4</text>
+<path d="M543.0,240.0 v-164.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v164.5 z" fill="var(--s1)"><title>30k–130k (中位 72k) · 表 latent 50k+退火 · 25.23</title></path>
+<text x="555.0" y="66.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.2</text>
+<path d="M569.0,240.0 v-161.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v161.6 z" fill="var(--s3)"><title>30k–130k (中位 72k) · 旁路(无 latent) · 25.04</title></path>
+<text x="581.0" y="69.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.0</text>
+</svg><figcaption>只看有纹理面，表 latent 在三档都是最高。</figcaption></figure></div>
+<h3>8.2 推理时改锚点数量</h3>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 640 280" width="100%" role="img" aria-label="推理时只改锚点数量，不重训（完整 val 前 32 个，area-PSNR dB）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">推理时只改锚点数量，不重训（完整 val 前 32 个，area-PSNR dB）</text>
+<line x1="44" x2="626" y1="240.0" y2="240.0" stroke="var(--grid)"/>
+<text x="38" y="243.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="626" y1="196.2" y2="196.2" stroke="var(--grid)"/>
+<text x="38" y="199.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22.5</text>
+<line x1="44" x2="626" y1="152.5" y2="152.5" stroke="var(--grid)"/>
+<text x="38" y="156.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="626" y1="108.8" y2="108.8" stroke="var(--grid)"/>
+<text x="38" y="112.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">27.5</text>
+<line x1="44" x2="626" y1="65.0" y2="65.0" stroke="var(--grid)"/>
+<text x="38" y="68.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<text transform="translate(11,135) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<text x="141.0" y="256" text-anchor="middle" fill="var(--fg)">8192</text>
+<path d="M116.0,240.0 v-52.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v52.3 z" fill="var(--s2)"><title>8192 · 旧注意力模型 50k · 23.22</title></path>
+<text x="128.0" y="178.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">23.2</text>
+<path d="M142.0,240.0 v-118.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v118.5 z" fill="var(--s1)"><title>8192 · 表 latent 50k+退火 · 27.00</title></path>
+<text x="154.0" y="112.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.0</text>
+<text x="141.0" y="270" text-anchor="middle" fill="var(--fg2)">训练值(旧)</text>
+<text x="335.0" y="256" text-anchor="middle" fill="var(--fg)">16384</text>
+<path d="M310.0,240.0 v-65.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v65.7 z" fill="var(--s2)"><title>16384 · 旧注意力模型 50k · 23.98</title></path>
+<text x="322.0" y="165.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.0</text>
+<path d="M336.0,240.0 v-150.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v150.5 z" fill="var(--s1)"><title>16384 · 表 latent 50k+退火 · 28.83</title></path>
+<text x="348.0" y="80.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">28.8</text>
+<text x="335.0" y="270" text-anchor="middle" fill="var(--fg2)">训练上限(表)</text>
+<text x="529.0" y="256" text-anchor="middle" fill="var(--fg)">32768</text>
+<path d="M504.0,240.0 v-74.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v74.6 z" fill="var(--s2)"><title>32768 · 旧注意力模型 50k · 24.49</title></path>
+<text x="516.0" y="156.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.5</text>
+<path d="M530.0,240.0 v-161.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v161.2 z" fill="var(--s1)"><title>32768 · 表 latent 50k+退火 · 29.44</title></path>
+<text x="542.0" y="69.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">29.4</text>
+<text x="529.0" y="270" text-anchor="middle" fill="var(--fg2)"></text>
+</svg><div class="legend"><span style="--c:var(--s2)">旧注意力模型 50k</span><span style="--c:var(--s1)">表 latent 50k+退火</span></div>
+<figcaption>两种模型都能不重训地换锚点数。表 latent 每翻倍约 +1.8 dB，32768 时越过 28 点输入的 interp 上界（29.20）；旧模型每翻倍 0.5 到 0.8。</figcaption></figure></div>
+<h3>8.3 细节直接观察</h3>
+<div class="figrow">
+<figure class="wide imgfig"><img src="roundq/dog_detail.jpg" alt="狗皮毛区域：真值、旧模型、旁路、表 latent" loading="lazy"><figcaption>Dog 皮毛区（裁剪区 PSNR 全部 / 高频段）：旧模型 27.9 / 29.4 只剩色块；旁路 31.0 / 31.6；表 latent 28.1 / 29.5，毛发走向和明暗还原。</figcaption></figure>
+<figure class="wide imgfig"><img src="roundq/mask_detail.jpg" alt="舞蹈面具：真值、旧模型、旁路、表 latent" loading="lazy"><figcaption>舞蹈面具（e610ab72）：旧模型 25.4，旁路 28.6，表 latent <strong>29.1</strong>，低频段 54.5 对旁路 45.4。按下标写读加上 latent 间的上下文，在 DC 上已经优于无 latent 的旁路。</figcaption></figure>
+</div>
+
+<h2>9. 剩余差距与下一步</h2>
+<ul>
+<li><strong>编码器输入只采 28 点</strong>是现在的硬上界（29.08）。本地 91 点输入的旁路和表 latent 都越过了它；全规模 91 点输入 + 16 通道的版本（Slurm 36202557）训练中，它的上界是 41.6。</li>
+<li><strong>大 mesh 的溢出槽</strong>：每格超过 8 个面时退化为平均。解法是锚点上限再提高或锚点多、槽位少，推理时锚点加倍已经验证有效。</li>
+<li><strong>latent 体积</strong>：N × 864 比旧的 8192 × 64 大 3 到 27 倍，一面一格时大部分槽位为空。16 通道只掉 0.2 dB，加上裁掉空槽位、按块 KL 把无信息块压到可预测分布，是接生成模型前要做的压缩。</li>
+<li><strong>对 DiT 的含义</strong>：latent 变成变长、按几何组织的表。锚点、格子、槽位全部由给定的 mesh 算出，DiT 只需填内容，不必预测结构；代价是 token 数随面数走，需要补齐与掩码。先把重建做到位，再用 latent 统计量定 DiT 一侧的设计。</li>
+<li>还需补充：渲染视角的 PSNR / SSIM / LPIPS，以便与 NaTex、LaFiTe、TEXTRIX 的数字同类比较（它们的数据集与指标不同，不能直接对比）。</li>
+</ul>
+
+<h2>10. 文件索引</h2>
+<ul class="small">
+<li>诊断脚本：<code>scripts/per_mesh_info_eval.py</code>、<code>gap_by_info_analysis.py</code>、<code>ac_band_analysis.py</code>、<code>attention_footprint.py</code>、<code>latent_linear_probe.py</code>、<code>decoder_locality_test.py</code>、<code>token_scaling_eval.py</code>、<code>eval_by_facecount.py</code>、<code>detail_grid.py</code></li>
+<li>结果目录：<code>outputs/viewer/gap_by_info/</code>、<code>attn_footprint/</code>、<code>table_eval/</code>、<code>detail_table/</code></li>
+<li>运行：<code>roundQ_tab_fps16k</code>（Slurm 36117431）、<code>roundQ_tab_fps16k_anneal10k</code>（36150409）、本地 <code>roundQ_tab_*_le8192</code> 系列；快照在 <code>/scratch3/wan451/TextureVAE/tritex_snapshots/</code></li>
+</ul>
+<footer>生成脚本 <code>build_roundq_page.py</code>；页面与 <a href="index.html">Round P / Q 主页面</a>共用样式。数据：Objaverse 1.0（CC-BY 等许可，见 README）。</footer>
+</div></body></html>
