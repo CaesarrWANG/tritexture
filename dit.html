@@ -1,0 +1,203 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TriTex 纹理 DiT</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: a single reading column (72ch) with full-bleed-ish figure rows; quiet lab-notebook treatment, blue/orange series colours */
+:root{--bg:#f7f7f4;--surface:#fcfcfb;--fg:#15171a;--fg2:#5b5f66;--grid:#e3e4e0;--line:#d6d8d3;--accent:#1c5cab;--accent-soft:#e6eef9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--good:#0ca30c;--bad:#d03b3b;
+  --font-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Noto Sans SC",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.65;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-inline:20px}
+header h1{font-size:30px;line-height:1.2;margin:0 0 6px;text-wrap:balance;font-weight:700}
+header .sub{color:var(--fg2);margin:0 0 4px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);margin:0 0 8px}
+h2{font-size:21px;margin:48px 0 12px;padding-top:20px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:16px;margin:22px 0 8px}
+p,li{max-width:72ch} ul{padding-left:1.2em}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0 8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.tile .l{font-size:12.5px;color:var(--fg2)} .tile .v{font-size:26px;font-weight:600;line-height:1.15;margin-top:2px} .tile .d{font-size:12.5px;color:var(--fg2);margin-top:4px}
+.v.bad{color:var(--bad)} .v.good{color:var(--good)}
+.figrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+figure.wide{grid-column:1/-1}
+figcaption{font-size:13px;color:var(--fg2);margin-top:8px;max-width:none}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--fg2);margin:4px 0 0} .legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--k)}
+.legend .dash::before{height:0;border-top:2px dashed var(--fg2);background:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-size:13.5px;min-width:520px;background:var(--surface)} th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--fg2);font-size:12.5px;background:var(--bg)} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono);font-size:12.5px}
+td.pos{color:var(--good);font-weight:600} td.neg{color:var(--bad);font-weight:600}
+code,.mono{font-family:var(--font-mono);font-size:.9em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:0 0 6px} .callout p:last-child{margin:0}
+img{max-width:100%;height:auto;border-radius:4px;display:block}
+.status{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-left:6px}
+
+.case{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;margin:16px 0;min-width:0}
+.casehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px} .meta{color:var(--fg2);font-size:13px} .meta .pos{color:var(--good);font-weight:600} .meta .neg{color:var(--bad);font-weight:600}
+.canvaswrap{position:relative;width:100%;aspect-ratio:3/1.15;background:var(--bg);border-radius:6px;overflow:hidden;max-width:100%}
+.canvaswrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.canvaswrap .poster{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:100%;width:auto;object-fit:contain;opacity:.9}
+.canvaswrap .loadmsg{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--fg2);background:var(--surface);padding:2px 8px;border-radius:999px}
+.vlabels{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;font-size:12.5px;color:var(--fg2);margin-top:6px}
+.ctrl{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--fg2);margin-top:8px} .ctrl label{display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+.ctrl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer} .ctrl button:focus-visible,.ctrl input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p.small{font-size:13px;color:var(--fg2)}
+.texpanel{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.texlbl{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;color:var(--fg2);margin-bottom:8px}
+.texlbl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer}
+.texpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:640px}
+.texpair.big{max-width:none}
+.texpair figure{margin:0;padding:0;border:0;background:none;min-width:0}
+.texpair img{width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#8a8a86;border:1px solid var(--line);border-radius:4px;display:block}
+.texpair figcaption{font-size:12px;color:var(--fg2);margin-top:4px;text-align:center}
+
+@media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
+footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+</style><style>.legend span::before{background:var(--c,var(--fg2))}</style>
+<style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
+details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px}</style>
+</head><body><div class="wrap">
+<header>
+<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="vae.html">← 纹理 VAE</a></p>
+<p class="eyebrow">TriTex · texture DiT on the table latent · 2026-10-17 至 10-19</p>
+<h1>纹理生成：表 latent 上的 DiT</h1>
+<p class="sub">给定 mesh 和若干视角的图像，生成每个面的纹理。12 个版本的迭代先解决"生成结果像迪斯科球"（面与面颜色互不相关），再接入图像条件；小规模版本的采样结果对真值从 11.6 dB 提到 22–23 dB，全规模训练进行中。</p>
+</header>
+<div class="tiles">
+<div class="tile"><div class="l">面间一致性（相邻面色差）</div><div class="v good">0.101 → 0.020</div><div class="d">真值 0.013；无引导、温度 1.0</div></div>
+<div class="tile"><div class="l">图像条件采样 PSNR（小规模）</div><div class="v good">23.0 dB</div><div class="d">v12 峰值；无条件 11.6，VAE 上限 28.5</div></div>
+<div class="tile"><div class="l">全规模（进行中）</div><div class="v">19–20 dB</div><div class="d">25k / 100k 步；去噪 29.95，VAE 上限 35.8</div></div>
+<div class="tile"><div class="l">模型</div><div class="v">1.6 亿</div><div class="d">768 宽 × 12 层，DINOv2 冻结</div></div>
+</div>
+
+<h2>1. 设计</h2>
+<div class="tablewrap"><table><tr><th>部分</th><th>做法</th><th>理由</th></tr><tr><td>token</td><td>VAE 表 latent 中每个被占用的 (锚点, 槽位) 一个 token，内容为 3 角点 × 16 通道 = 48 维；空槽不生成</td><td>空槽的后验已等于先验 (μ≈0, σ=1)，无需建模；token 数 ≈ 面数</td></tr><tr><td>结构由几何给出</td><td>锚点、格子、槽位全部由 mesh 算出，DiT 只填内容</td><td>生成时 mesh 已知，与图像 DiT 的像素网格同等地位</td></tr><tr><td>每 token 条件</td><td>角点几何、到锚点位移、法向、锚点位置编码、槽位 one-hot、UV 岛随机编码、图像回投颜色</td><td>与 VAE 共用同一套地址系统</td></tr><tr><td>注意力</td><td>自注意力 + RoPE-6D（位置 + 法向）+ 按头的距离核阶梯 + 同 UV 岛偏置 + 8 个全局寄存 token；每层图像交叉注意力</td><td>局部一致性和全局色板分开处理</td></tr><tr><td>目标</td><td>流匹配（速度），latent 按维度标准化；t 一半 logit-normal 一半均匀，SD3 时间平移 3</td><td>覆盖高噪声段（布局在这里决定）</td></tr><tr><td>附加损失</td><td>平均色子空间加权 ×5；接缝损失 ×10：用冻结 VAE 解码预测的干净 latent，比较跨边颜色跳变与真值</td><td>让模型学会面间连续</td></tr><tr><td>采样</td><td>50 步 Euler，无分类器引导强度 4；可选接缝引导</td><td></td></tr></table></div>
+
+<h2>2. 迭代过程</h2>
+<div class="tablewrap"><table><tr><th>版本</th><th>改动</th><th>关键结果</th><th>结论</th></tr><tr><td>v1</td><td>按面 token + 几何条件 + 流匹配</td><td>从纯噪声采样 9 dB，从 t=0.7 出发 30 dB</td><td>t>0.95 训练时几乎采不到，采样第一步就偏</td></tr><tr><td>v2</td><td>按维度标准化 latent；t 混合分布 + 时间平移</td><td>去噪正常，样本面内正常但相邻面颜色无关（相邻色差 0.10，真值 0.013）</td><td>缺的是面间相关性</td></tr><tr><td>v3</td><td>注意力加距离核阶梯 + 寄存 token + 累积 2</td><td>一致性收敛快一倍，但停在 0.045</td><td></td></tr><tr><td>v4</td><td>平均色子空间加权</td><td>几乎无改善</td><td>latent 的平均色子空间本就平滑（相邻/随机比 0.21），粗糙的是面内细节维度</td></tr><tr><td>v5</td><td>（取消）几何无关 VAE</td><td>latent 平滑度不变（0.476 对 0.469）</td><td>几何不是 latent 粗糙的原因</td></tr><tr><td>v6</td><td>UV 岛随机编码（GLB 索引缓冲的连通块）</td><td>7.5k 相邻色差 0.034，比 v4 15k 还低</td><td>UV 岛解释了真值 75% 的颜色方差；第一个明显有效的改动</td></tr><tr><td>v7</td><td>同 UV 岛的注意力偏置</td><td>与 v6 相同（0.030）</td><td></td></tr><tr><td>采样实验</td><td>降温 0.9 / 接缝引导</td><td>降温：一致性到真值，但面内细节减半；引导强度 3：接缝 0.007、细节保留</td><td>不一致产生于高噪声段的布局决策</td></tr><tr><td>v8</td><td>接缝损失 ×1，按 (1−t) 加权</td><td>接缝 0.044 → 0.035</td><td>方向对但慢：(1−t) 压低了关键的高噪声段</td></tr><tr><td>v9</td><td>接缝损失 ×10，各噪声等权</td><td>相邻色差 0.020、接缝 0.027、色彩分布与细节都与真值吻合</td><td>无条件生成可用；加强度 1 的引导后接缝到真值水平</td></tr><tr><td>v10</td><td>图像条件：6→4 视角渲染 + DINOv2 交叉注意力</td><td>采样 PSNR 11.6 → 14.3</td><td>跟随条件但很松：网络要自己找每个面在图上的位置</td></tr><tr><td>v11</td><td>每面在各视角的可见像素平均色回投为条件</td><td>20.0 dB</td><td>单色物体几乎精确，彩色物体颜色对上</td></tr><tr><td>v12</td><td>28 格点逐点回投 + 6 视角（加顶/底）</td><td>峰值 23.0 dB</td><td>面内图案也能传进来</td></tr><tr><td>全规模</td><td>91 点 VAE、≤ 3 万面、16 卡、v12 配方</td><td>25k 步 19–20 dB，去噪 29.95</td><td>进行中</td></tr></table></div>
+
+<h2>3. 无条件生成：面间一致性</h2>
+<p>只给几何时生成结果对真值的 PSNR 没有意义（生成的是另一种合理纹理），所以用三个与真值内容无关的统计量：相邻面平均色差、全局颜色分布宽度、跨共享边的颜色跳变（接缝）。</p>
+<div class="tablewrap"><table><tr><th>版本（温度 1.0，不加引导）</th><th class=n>相邻面平均色差</th><th class=n>色彩分布宽度</th><th class=n>面内细节</th><th class=n>接缝跳变</th></tr><tr><td>真值（8 个 val mesh）</td><td class=n>0.013</td><td class=n>0.118</td><td class=n>0.025</td><td class=n>0.014</td></tr><tr><td>v2 @5k</td><td class=n neg>0.101</td><td class=n>0.151</td><td class=n>0.037</td><td class=n>—</td></tr><tr><td>v6 @7.5k（UV 岛）</td><td class=n>0.034</td><td class=n>0.110</td><td class=n>0.028</td><td class=n>—</td></tr><tr><td>v7 @17.5k（岛注意力）</td><td class=n>0.029</td><td class=n>0.137</td><td class=n>0.032</td><td class=n>0.044</td></tr><tr><td>v8 @5k（接缝 ×1）</td><td class=n>0.025</td><td class=n>0.130</td><td class=n>0.030</td><td class=n>0.035</td></tr><tr><td>v9 @5k（接缝 ×10）</td><td class=n pos>0.020</td><td class=n pos>0.115</td><td class=n pos>0.026</td><td class=n pos>0.027</td></tr></table></div>
+<div class="tablewrap"><table><tr><th>v9 @5k + 接缝引导</th><th class=n>相邻色差</th><th class=n>色彩分布</th><th class=n>面内细节</th><th class=n>接缝</th></tr><tr><td>真值（6 个 mesh）</td><td class=n>0.008</td><td class=n>0.078</td><td class=n>0.018</td><td class=n>0.010</td></tr><tr><td>引导 0</td><td class=n>0.022</td><td class=n>0.114</td><td class=n>0.026</td><td class=n>0.028</td></tr><tr><td>引导 0.5</td><td class=n>0.019</td><td class=n>0.111</td><td class=n>0.025</td><td class=n>0.014</td></tr><tr><td>引导 1</td><td class=n pos>0.018</td><td class=n>0.109</td><td class=n pos>0.024</td><td class=n pos>0.007</td></tr></table></div>
+<div class="figrow">
+<figure class="wide imgfig"><img src="dit/v2_disco.jpg" alt="v2 样本" loading="lazy"><figcaption>v2：每个面内部正常，相邻面颜色互不相关（迪斯科球效应）。列：真值 / VAE 重建 / 两个样本。</figcaption></figure>
+<figure class="wide imgfig"><img src="dit/v9_seam.jpg" alt="v9 样本" loading="lazy"><figcaption>v9（无引导）：每个 UV 岛内颜色统一，不同样本有不同配色。</figcaption></figure>
+</div>
+<details><summary>v6（UV 岛编码）样本</summary><figure class="wide imgfig"><img src="dit/v6_islands.jpg" alt="v6 样本" loading="lazy"><figcaption>v6 @7.5k，温度 1.0。</figcaption></figure></details>
+
+<h2>4. 图像条件</h2>
+<div class="figrow"><figure class="wide imgfig"><img src="dit/cond_views.jpg" alt="条件视图" loading="lazy"><figcaption>条件视图示例：无光照反照率，白背景，224 像素（v12 起再加俯视和仰视共 6 个）。</figcaption></figure></div>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="图像条件：采样结果对真值的 PSNR（≤ 8192 面子集，小 VAE）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">图像条件：采样结果对真值的 PSNR（≤ 8192 面子集，小 VAE）</text>
+<line x1="44" x2="626" y1="208.5" y2="208.5" stroke="var(--grid)"/>
+<text x="38" y="212.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">15</text>
+<line x1="44" x2="626" y1="148.6" y2="148.6" stroke="var(--grid)"/>
+<text x="38" y="152.1" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="626" y1="88.7" y2="88.7" stroke="var(--grid)"/>
+<text x="38" y="92.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<text x="202.7" y="282" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="414.4" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="626.0" y="282" text-anchor="middle" fill="var(--fg2)">30k</text>
+<text x="335" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<line x1="44" x2="626" y1="249.7" y2="249.7" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="626" y="245.7" text-anchor="end" fill="var(--fg2)">无条件 v9 11.56</text>
+<line x1="44" x2="626" y1="46.3" y2="46.3" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="626" y="42.3" text-anchor="end" fill="var(--fg2)">VAE 重建上限 28.54</text>
+<polyline points="44.0,235.1 96.9,217.4" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="235.1" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>v10 DINO · 2k · 12.78 dB</title></circle>
+<circle cx="96.9" cy="217.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>v10 DINO · 5k · 14.26 dB</title></circle>
+<text x="90.9" y="209.4" text-anchor="end" fill="var(--s2)" font-weight="600">v10 DINO 14.26</text>
+<polyline points="44.0,187.5 96.9,169.1 149.8,160.1 202.7,153.8 255.6,148.5" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="187.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>v11 + 每面颜色回投 · 2k · 16.75 dB</title></circle>
+<circle cx="96.9" cy="169.1" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>v11 + 每面颜色回投 · 5k · 18.29 dB</title></circle>
+<circle cx="149.8" cy="160.1" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>v11 + 每面颜色回投 · 7k · 19.04 dB</title></circle>
+<circle cx="202.7" cy="153.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>v11 + 每面颜色回投 · 10k · 19.57 dB</title></circle>
+<circle cx="255.6" cy="148.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>v11 + 每面颜色回投 · 12k · 20.01 dB</title></circle>
+<text x="249.6" y="140.5" text-anchor="end" fill="var(--s3)" font-weight="600">v11 + 每面颜色回投 20.01</text>
+<polyline points="44.0,169.3 96.9,149.6 149.8,124.0 202.7,150.8 255.6,136.6 308.5,128.5 361.5,121.3 414.4,115.2 467.3,112.2 520.2,116.8 573.1,121.6 626.0,123.2" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="169.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 2k · 18.27 dB</title></circle>
+<circle cx="96.9" cy="149.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 5k · 19.92 dB</title></circle>
+<circle cx="149.8" cy="124.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 7k · 22.05 dB</title></circle>
+<circle cx="202.7" cy="150.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 10k · 19.82 dB</title></circle>
+<circle cx="255.6" cy="136.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 12k · 21.00 dB</title></circle>
+<circle cx="308.5" cy="128.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 15k · 21.68 dB</title></circle>
+<circle cx="361.5" cy="121.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 17k · 22.28 dB</title></circle>
+<circle cx="414.4" cy="115.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 20k · 22.79 dB</title></circle>
+<circle cx="467.3" cy="112.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 22k · 23.04 dB</title></circle>
+<circle cx="520.2" cy="116.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 25k · 22.65 dB</title></circle>
+<circle cx="573.1" cy="121.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 27k · 22.25 dB</title></circle>
+<circle cx="626.0" cy="123.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>v12 + 格点回投 + 6 视角 · 30k · 22.12 dB</title></circle>
+<text x="620.0" y="115.2" text-anchor="end" fill="var(--s1)" font-weight="600">v12 + 格点回投 + 6 视角 22.12</text>
+</svg><div class="legend"><span style="--c:var(--s2)">v10</span><span style="--c:var(--s3)">v11</span><span style="--c:var(--s1)">v12</span><span class="dash">参照</span></div>
+<figcaption>步数从各自热启动点算起；评测 16 个 val mesh，单点波动约 ±1 dB。回投把"这块在图上是什么颜色"直接交给每个 token，比让交叉注意力自己找有效得多。</figcaption></figure></div>
+<div class="figrow">
+<figure class="wide imgfig"><img src="dit/v12_bplat.jpg" alt="v12 样本" loading="lazy"><figcaption>v12 @7.5k，引导 4：黑色物体与玩偶几乎与真值一致；球星卡模糊是因为小 VAE 本身重建不了（第二列）。最右为条件视图。</figcaption></figure>
+</div>
+<details><summary>v10（只有 DINO）与 v11（每面颜色回投）样本</summary><figure class="wide imgfig"><img src="dit/v10_dino.jpg" alt="v10" loading="lazy"><figcaption>v10 @5k：只能看出整体明暗。</figcaption></figure><figure class="wide imgfig"><img src="dit/v11_bp.jpg" alt="v11" loading="lazy"><figcaption>v11 @12.5k，引导 4。</figcaption></figure></details>
+
+<h2>5. 全规模训练（进行中）</h2>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="全规模 DiT（91 点 VAE，≤ 3 万面，16 卡）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">全规模 DiT（91 点 VAE，≤ 3 万面，16 卡）</text>
+<line x1="44" x2="626" y1="245.0" y2="245.0" stroke="var(--grid)"/>
+<text x="38" y="248.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">15</text>
+<line x1="44" x2="626" y1="197.3" y2="197.3" stroke="var(--grid)"/>
+<text x="38" y="200.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="626" y1="149.5" y2="149.5" stroke="var(--grid)"/>
+<text x="38" y="153.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="626" y1="101.7" y2="101.7" stroke="var(--grid)"/>
+<text x="38" y="105.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<line x1="44" x2="626" y1="53.9" y2="53.9" stroke="var(--grid)"/>
+<text x="38" y="57.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">35</text>
+<text x="108.7" y="282" text-anchor="middle" fill="var(--fg2)">5k</text>
+<text x="238.0" y="282" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="367.3" y="282" text-anchor="middle" fill="var(--fg2)">15k</text>
+<text x="496.7" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="626.0" y="282" text-anchor="middle" fill="var(--fg2)">25k</text>
+<text x="335" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<line x1="44" x2="626" y1="46.3" y2="46.3" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="626" y="42.3" text-anchor="end" fill="var(--fg2)">VAE 重建上限 35.80</text>
+<polyline points="44.0,249.7 108.7,216.6 173.3,207.1 238.0,209.9 302.7,211.6 367.3,211.3 432.0,210.3 496.7,206.3 561.3,201.4 626.0,207.2" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="249.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 2k · 14.51 dB</title></circle>
+<circle cx="108.7" cy="216.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 5k · 17.98 dB</title></circle>
+<circle cx="173.3" cy="207.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 7k · 18.97 dB</title></circle>
+<circle cx="238.0" cy="209.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 10k · 18.68 dB</title></circle>
+<circle cx="302.7" cy="211.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 12k · 18.50 dB</title></circle>
+<circle cx="367.3" cy="211.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 15k · 18.53 dB</title></circle>
+<circle cx="432.0" cy="210.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 17k · 18.64 dB</title></circle>
+<circle cx="496.7" cy="206.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 20k · 19.05 dB</title></circle>
+<circle cx="561.3" cy="201.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 22k · 19.57 dB</title></circle>
+<circle cx="626.0" cy="207.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>采样 PSNR · 25k · 18.96 dB</title></circle>
+<text x="620.0" y="199.2" text-anchor="end" fill="var(--s1)" font-weight="600">采样 PSNR 18.96</text>
+<polyline points="44.0,185.8 108.7,139.6 173.3,119.7 238.0,112.8 302.7,109.3 367.3,107.7 432.0,105.7 496.7,104.3 561.3,103.2 626.0,102.2" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="185.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 2k · 21.20 dB</title></circle>
+<circle cx="108.7" cy="139.6" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 5k · 26.03 dB</title></circle>
+<circle cx="173.3" cy="119.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 7k · 28.12 dB</title></circle>
+<circle cx="238.0" cy="112.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 10k · 28.84 dB</title></circle>
+<circle cx="302.7" cy="109.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 12k · 29.20 dB</title></circle>
+<circle cx="367.3" cy="107.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 15k · 29.37 dB</title></circle>
+<circle cx="432.0" cy="105.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 17k · 29.58 dB</title></circle>
+<circle cx="496.7" cy="104.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 20k · 29.73 dB</title></circle>
+<circle cx="561.3" cy="103.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 22k · 29.84 dB</title></circle>
+<circle cx="626.0" cy="102.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>去噪 PSNR (t=0.5) · 25k · 29.95 dB</title></circle>
+<text x="620.0" y="94.2" text-anchor="end" fill="var(--s3)" font-weight="600">去噪 PSNR (t=0.5) 29.95</text>
+</svg><div class="legend"><span style="--c:var(--s1)">采样 PSNR</span><span style="--c:var(--s3)">去噪 PSNR</span></div>
+<figcaption>Slurm 36244639，89,469 个 ≤ 3 万面的 mesh，每步 16 个，1.5 秒/步，100k 步约 40 小时。去噪能力持续上升，采样 PSNR 目前在 19–20 dB 徘徊。</figcaption></figure></div>
+<div class="figrow"><figure class="wide imgfig"><img src="dit/full_10k.jpg" alt="全规模样本" loading="lazy"><figcaption>10k 步（2–2.4 万面的 val mesh，引导 4）：人物、帽子小人、手雷接近真值；满身涂鸦的人物变成横向拉丝的色块，高频图案是当前最弱处。</figcaption></figure></div>
+
+<h2>6. 下一步</h2>
+<ul>
+<li>全规模跑到 30k 后看高频图案是否改善；若仍是拉丝块，消融接缝权重和局部先验对面内细节的抑制。</li>
+<li>预计算并缓存 VAE latent 与 DINO 特征，单步时间可降一半以上。</li>
+<li>超过 3 万面的 mesh：按锚点分组的局部注意力 + 全局 token。</li>
+<li>评测补充：多视角渲染图上的 PSNR / LPIPS / FID，便于和其他方法比较。</li>
+</ul>
+<footer>生成脚本 build_dit_page.py。</footer>
+</div></body></html>
