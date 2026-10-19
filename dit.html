@@ -60,18 +60,21 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
 </style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
 <style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
-details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px}</style>
+details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px} details[open] summary{margin-bottom:8px}
+.vlabels.four{grid-template-columns:repeat(4,1fr)} .texpair.four{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none} .case .canvaswrap{aspect-ratio:4/1.15} @media (max-width:700px){.case .canvaswrap{aspect-ratio:4/1.6}}
+.condfig{margin:0 0 10px} .condfig img{width:100%;max-width:980px;height:auto;display:block;border-radius:4px}</style>
 </head><body><div class="wrap">
 <header>
 <p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="vae.html">← 纹理 VAE</a></p>
 <p class="eyebrow">TriTex · texture DiT on the table latent · 2026-10-17 至 10-19</p>
 <h1>纹理生成：表 latent 上的 DiT</h1>
-<p class="sub">给定 mesh 和若干视角的图像，生成每个面的纹理。12 个版本的迭代先解决"生成结果像迪斯科球"（面与面颜色互不相关），再接入图像条件；小规模版本的采样结果对真值从 11.6 dB 提到 22–23 dB，全规模训练进行中。</p>
+<p class="sub">给定 mesh 和若干视角的图像，生成每个面的纹理。12 个版本的迭代先解决"生成结果像迪斯科球"（面与面颜色互不相关），再接入图像条件；小规模版本的采样结果对真值从 11.6 dB 提到 22–23 dB，全规模训练进行中。第 5 节用与 <a href="vae.html">VAE 页</a>相同的 10 个 held-out mesh 展示当前全规模模型的样本（可交互 3D）。</p>
 </header>
 <div class="tiles">
 <div class="tile"><div class="l">面间一致性（相邻面色差）</div><div class="v good">0.101 → 0.020</div><div class="d">真值 0.013；无引导、温度 1.0</div></div>
 <div class="tile"><div class="l">图像条件采样 PSNR（小规模）</div><div class="v good">23.0 dB</div><div class="d">v12 峰值；无条件 11.6，VAE 上限 28.5</div></div>
 <div class="tile"><div class="l">全规模（进行中）</div><div class="v">19–20 dB</div><div class="d">25k / 100k 步；去噪 29.95，VAE 上限 35.8</div></div>
+<div class="tile"><div class="l">10 个展示案例（25k 步）</div><div class="v">22.5 dB</div><div class="d">样本渲染 PSNR 中位数；VAE 重建 31.2；4/10 在训练面数范围内</div></div>
 <div class="tile"><div class="l">模型</div><div class="v">1.6 亿</div><div class="d">768 宽 × 12 层，DINOv2 冻结</div></div>
 </div>
 
@@ -85,11 +88,10 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 <p>只给几何时生成结果对真值的 PSNR 没有意义（生成的是另一种合理纹理），所以用三个与真值内容无关的统计量：相邻面平均色差、全局颜色分布宽度、跨共享边的颜色跳变（接缝）。</p>
 <div class="tablewrap"><table><tr><th>版本（温度 1.0，不加引导）</th><th class=n>相邻面平均色差</th><th class=n>色彩分布宽度</th><th class=n>面内细节</th><th class=n>接缝跳变</th></tr><tr><td>真值（8 个 val mesh）</td><td class=n>0.013</td><td class=n>0.118</td><td class=n>0.025</td><td class=n>0.014</td></tr><tr><td>v2 @5k</td><td class=n neg>0.101</td><td class=n>0.151</td><td class=n>0.037</td><td class=n>—</td></tr><tr><td>v6 @7.5k（UV 岛）</td><td class=n>0.034</td><td class=n>0.110</td><td class=n>0.028</td><td class=n>—</td></tr><tr><td>v7 @17.5k（岛注意力）</td><td class=n>0.029</td><td class=n>0.137</td><td class=n>0.032</td><td class=n>0.044</td></tr><tr><td>v8 @5k（接缝 ×1）</td><td class=n>0.025</td><td class=n>0.130</td><td class=n>0.030</td><td class=n>0.035</td></tr><tr><td>v9 @5k（接缝 ×10）</td><td class=n pos>0.020</td><td class=n pos>0.115</td><td class=n pos>0.026</td><td class=n pos>0.027</td></tr></table></div>
 <div class="tablewrap"><table><tr><th>v9 @5k + 接缝引导</th><th class=n>相邻色差</th><th class=n>色彩分布</th><th class=n>面内细节</th><th class=n>接缝</th></tr><tr><td>真值（6 个 mesh）</td><td class=n>0.008</td><td class=n>0.078</td><td class=n>0.018</td><td class=n>0.010</td></tr><tr><td>引导 0</td><td class=n>0.022</td><td class=n>0.114</td><td class=n>0.026</td><td class=n>0.028</td></tr><tr><td>引导 0.5</td><td class=n>0.019</td><td class=n>0.111</td><td class=n>0.025</td><td class=n>0.014</td></tr><tr><td>引导 1</td><td class=n pos>0.018</td><td class=n>0.109</td><td class=n pos>0.024</td><td class=n pos>0.007</td></tr></table></div>
-<div class="figrow">
+<details><summary>历史样本图（小规模模型、≤ 8192 面 val 子集；展示案例见第 5 节）：v2 迪斯科球 / v6 UV 岛编码 / v9 接缝损失</summary><div class="figrow">
 <figure class="wide imgfig"><img src="dit/v2_disco.jpg" alt="v2 样本" loading="lazy"><figcaption>v2：每个面内部正常，相邻面颜色互不相关（迪斯科球效应）。列：真值 / VAE 重建 / 两个样本。</figcaption></figure>
 <figure class="wide imgfig"><img src="dit/v9_seam.jpg" alt="v9 样本" loading="lazy"><figcaption>v9（无引导）：每个 UV 岛内颜色统一，不同样本有不同配色。</figcaption></figure>
-</div>
-<details><summary>v6（UV 岛编码）样本</summary><figure class="wide imgfig"><img src="dit/v6_islands.jpg" alt="v6 样本" loading="lazy"><figcaption>v6 @7.5k，温度 1.0。</figcaption></figure></details>
+</div><figure class="wide imgfig"><img src="dit/v6_islands.jpg" alt="v6 样本" loading="lazy"><figcaption>v6 @7.5k，温度 1.0。</figcaption></figure></details>
 
 <h2>4. 图像条件</h2>
 <div class="figrow"><figure class="wide imgfig"><img src="dit/cond_views.jpg" alt="条件视图" loading="lazy"><figcaption>条件视图示例：无光照反照率，白背景，224 像素（v12 起再加俯视和仰视共 6 个）。</figcaption></figure></div>
@@ -137,12 +139,269 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 <text x="620.0" y="115.2" text-anchor="end" fill="var(--s1)" font-weight="600">v12 + 格点回投 + 6 视角 22.12</text>
 </svg><div class="legend"><span style="--c:var(--s2)">v10</span><span style="--c:var(--s3)">v11</span><span style="--c:var(--s1)">v12</span><span class="dash">参照</span></div>
 <figcaption>步数从各自热启动点算起；评测 16 个 val mesh，单点波动约 ±1 dB。回投把"这块在图上是什么颜色"直接交给每个 token，比让交叉注意力自己找有效得多。</figcaption></figure></div>
-<div class="figrow">
-<figure class="wide imgfig"><img src="dit/v12_bplat.jpg" alt="v12 样本" loading="lazy"><figcaption>v12 @7.5k，引导 4：黑色物体与玩偶几乎与真值一致；球星卡模糊是因为小 VAE 本身重建不了（第二列）。最右为条件视图。</figcaption></figure>
-</div>
-<details><summary>v10（只有 DINO）与 v11（每面颜色回投）样本</summary><figure class="wide imgfig"><img src="dit/v10_dino.jpg" alt="v10" loading="lazy"><figcaption>v10 @5k：只能看出整体明暗。</figcaption></figure><figure class="wide imgfig"><img src="dit/v11_bp.jpg" alt="v11" loading="lazy"><figcaption>v11 @12.5k，引导 4。</figcaption></figure></details>
+<details><summary>历史样本图（小规模模型、≤ 8192 面 val 子集）：v12 / v10 / v11</summary><figure class="wide imgfig"><img src="dit/v12_bplat.jpg" alt="v12 样本" loading="lazy"><figcaption>v12 @7.5k，引导 4：黑色物体与玩偶几乎与真值一致；球星卡模糊是因为小 VAE 本身重建不了（第二列）。最右为条件视图。</figcaption></figure><figure class="wide imgfig"><img src="dit/v10_dino.jpg" alt="v10" loading="lazy"><figcaption>v10 @5k：只能看出整体明暗。</figcaption></figure><figure class="wide imgfig"><img src="dit/v11_bp.jpg" alt="v11" loading="lazy"><figcaption>v11 @12.5k，引导 4。</figcaption></figure></details>
 
-<h2>5. 全规模训练（进行中）</h2>
+<h2>5. 展示案例：与 VAE 页相同的 10 个 held-out mesh</h2>
+<p>全规模 DiT（v12 配方，25k 步 EMA 权重），每个 mesh 从 6 个无光照渲染视图出发采样两次（50 步 Euler，无分类器引导 4，温度 1，不加接缝引导），再经 VAE 解码器求值。VAE 重建一列是同一 VAE 对真值编码再解码的结果，即 DiT 在这套 latent 上能达到的上限。标 ⚠ 的 6 个 mesh 超过训练时的 3 万面上限（最大 Spider-Man 9.9 万面），模型没有见过这种 token 数，样本质量按理应打折扣。</p>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 980 320" width="100%" role="img" aria-label="10 个展示案例（与 VAE 页相同）：4 视角渲染图对真值的 PSNR (dB)，全规模 DiT 25k 步" style="max-width:980px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">10 个展示案例（与 VAE 页相同）：4 视角渲染图对真值的 PSNR (dB)，全规模 DiT 25k 步</text>
+<line x1="44" x2="966" y1="280.0" y2="280.0" stroke="var(--grid)"/>
+<text x="38" y="283.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">10</text>
+<line x1="44" x2="966" y1="240.9" y2="240.9" stroke="var(--grid)"/>
+<text x="38" y="244.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">15</text>
+<line x1="44" x2="966" y1="201.9" y2="201.9" stroke="var(--grid)"/>
+<text x="38" y="205.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="966" y1="162.8" y2="162.8" stroke="var(--grid)"/>
+<text x="38" y="166.3" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="966" y1="123.8" y2="123.8" stroke="var(--grid)"/>
+<text x="38" y="127.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<line x1="44" x2="966" y1="84.7" y2="84.7" stroke="var(--grid)"/>
+<text x="38" y="88.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">35</text>
+<line x1="44" x2="966" y1="45.6" y2="45.6" stroke="var(--grid)"/>
+<text x="38" y="49.1" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">40</text>
+<text transform="translate(11,155) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<text x="90.1" y="296" text-anchor="middle" fill="var(--fg)">Spider-Man</text>
+<path d="M52.1,280.0 v-131.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v131.0 z" fill="var(--s1)"><title>Spider-Man · VAE 重建（上限） · 27.28</title></path>
+<text x="64.1" y="140.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.3</text>
+<path d="M78.1,280.0 v-86.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v86.4 z" fill="var(--s3)"><title>Spider-Man · DiT 样本 A · 21.57</title></path>
+<text x="90.1" y="184.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">21.6</text>
+<path d="M104.1,280.0 v-87.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v87.6 z" fill="var(--s2)"><title>Spider-Man · DiT 样本 B · 21.73</title></path>
+<text x="116.1" y="183.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">21.7</text>
+<text x="90.1" y="310" text-anchor="middle" fill="var(--fg2)">99k 面 ⚠</text>
+<text x="182.3" y="296" text-anchor="middle" fill="var(--fg)">Soldier</text>
+<path d="M144.3,280.0 v-176.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v176.1 z" fill="var(--s1)"><title>Soldier · VAE 重建（上限） · 33.05</title></path>
+<text x="156.3" y="94.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">33.1</text>
+<path d="M170.3,280.0 v-125.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v125.7 z" fill="var(--s3)"><title>Soldier · DiT 样本 A · 26.61</title></path>
+<text x="182.3" y="145.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.6</text>
+<path d="M196.3,280.0 v-125.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v125.5 z" fill="var(--s2)"><title>Soldier · DiT 样本 B · 26.58</title></path>
+<text x="208.3" y="145.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.6</text>
+<text x="182.3" y="310" text-anchor="middle" fill="var(--fg2)">31k 面 ⚠</text>
+<text x="274.5" y="296" text-anchor="middle" fill="var(--fg)">救护车</text>
+<path d="M236.5,280.0 v-162.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v162.7 z" fill="var(--s1)"><title>救护车 · VAE 重建（上限） · 31.34</title></path>
+<text x="248.5" y="108.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">31.3</text>
+<path d="M262.5,280.0 v-123.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v123.1 z" fill="var(--s3)"><title>救护车 · DiT 样本 A · 26.27</title></path>
+<text x="274.5" y="147.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.3</text>
+<path d="M288.5,280.0 v-120.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v120.8 z" fill="var(--s2)"><title>救护车 · DiT 样本 B · 25.97</title></path>
+<text x="300.5" y="150.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.0</text>
+<text x="274.5" y="310" text-anchor="middle" fill="var(--fg2)">48k 面 ⚠</text>
+<text x="366.7" y="296" text-anchor="middle" fill="var(--fg)">Enternity Demon</text>
+<path d="M328.7,280.0 v-215.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v215.5 z" fill="var(--s1)"><title>Enternity Demon · VAE 重建（上限） · 38.10</title></path>
+<text x="340.7" y="55.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">38.1</text>
+<path d="M354.7,280.0 v-139.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v139.7 z" fill="var(--s3)"><title>Enternity Demon · DiT 样本 A · 28.39</title></path>
+<text x="366.7" y="131.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">28.4</text>
+<path d="M380.7,280.0 v-142.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v142.1 z" fill="var(--s2)"><title>Enternity Demon · DiT 样本 B · 28.70</title></path>
+<text x="392.7" y="128.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">28.7</text>
+<text x="366.7" y="310" text-anchor="middle" fill="var(--fg2)">50k 面 ⚠</text>
+<text x="458.9" y="296" text-anchor="middle" fill="var(--fg)">Hello Neighbor</text>
+<path d="M420.9,280.0 v-161.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v161.3 z" fill="var(--s1)"><title>Hello Neighbor · VAE 重建（上限） · 31.16</title></path>
+<text x="432.9" y="109.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">31.2</text>
+<path d="M446.9,280.0 v-80.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v80.7 z" fill="var(--s3)"><title>Hello Neighbor · DiT 样本 A · 20.85</title></path>
+<text x="458.9" y="190.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.8</text>
+<path d="M472.9,280.0 v-80.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v80.3 z" fill="var(--s2)"><title>Hello Neighbor · DiT 样本 B · 20.79</title></path>
+<text x="484.9" y="190.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.8</text>
+<text x="458.9" y="310" text-anchor="middle" fill="var(--fg2)">23k 面</text>
+<text x="551.1" y="296" text-anchor="middle" fill="var(--fg)">舞蹈面具</text>
+<path d="M513.1,280.0 v-172.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v172.5 z" fill="var(--s1)"><title>舞蹈面具 · VAE 重建（上限） · 32.59</title></path>
+<text x="525.1" y="98.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">32.6</text>
+<path d="M539.1,280.0 v-96.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v96.3 z" fill="var(--s3)"><title>舞蹈面具 · DiT 样本 A · 22.84</title></path>
+<text x="551.1" y="174.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">22.8</text>
+<path d="M565.1,280.0 v-97.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v97.2 z" fill="var(--s2)"><title>舞蹈面具 · DiT 样本 B · 22.96</title></path>
+<text x="577.1" y="173.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">23.0</text>
+<text x="551.1" y="310" text-anchor="middle" fill="var(--fg2)">8k 面</text>
+<text x="643.3" y="296" text-anchor="middle" fill="var(--fg)">Rippersnapper</text>
+<path d="M605.3,280.0 v-109.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v109.8 z" fill="var(--s1)"><title>Rippersnapper · VAE 重建（上限） · 24.57</title></path>
+<text x="617.3" y="161.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.6</text>
+<path d="M631.3,280.0 v-68.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v68.8 z" fill="var(--s3)"><title>Rippersnapper · DiT 样本 A · 19.32</title></path>
+<text x="643.3" y="202.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">19.3</text>
+<path d="M657.3,280.0 v-69.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v69.1 z" fill="var(--s2)"><title>Rippersnapper · DiT 样本 B · 19.36</title></path>
+<text x="669.3" y="201.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">19.4</text>
+<text x="643.3" y="310" text-anchor="middle" fill="var(--fg2)">5k 面</text>
+<text x="735.5" y="296" text-anchor="middle" fill="var(--fg)">Shadowsun</text>
+<path d="M697.5,280.0 v-123.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v123.8 z" fill="var(--s1)"><title>Shadowsun · VAE 重建（上限） · 26.36</title></path>
+<text x="709.5" y="147.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.4</text>
+<path d="M723.5,280.0 v-75.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v75.0 z" fill="var(--s3)"><title>Shadowsun · DiT 样本 A · 20.11</title></path>
+<text x="735.5" y="196.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.1</text>
+<path d="M749.5,280.0 v-75.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v75.6 z" fill="var(--s2)"><title>Shadowsun · DiT 样本 B · 20.19</title></path>
+<text x="761.5" y="195.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.2</text>
+<text x="735.5" y="310" text-anchor="middle" fill="var(--fg2)">7k 面</text>
+<text x="827.7" y="296" text-anchor="middle" fill="var(--fg)">Dog</text>
+<path d="M789.7,280.0 v-190.1 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v190.1 z" fill="var(--s1)"><title>Dog · VAE 重建（上限） · 34.84</title></path>
+<text x="801.7" y="80.9" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">34.8</text>
+<path d="M815.7,280.0 v-133.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v133.4 z" fill="var(--s3)"><title>Dog · DiT 样本 A · 27.59</title></path>
+<text x="827.7" y="137.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.6</text>
+<path d="M841.7,280.0 v-132.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v132.3 z" fill="var(--s2)"><title>Dog · DiT 样本 B · 27.44</title></path>
+<text x="853.7" y="138.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.4</text>
+<text x="827.7" y="310" text-anchor="middle" fill="var(--fg2)">33k 面 ⚠</text>
+<text x="919.9" y="296" text-anchor="middle" fill="var(--fg)">Bee</text>
+<path d="M881.9,280.0 v-137.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v137.2 z" fill="var(--s1)"><title>Bee · VAE 重建（上限） · 28.07</title></path>
+<text x="893.9" y="133.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">28.1</text>
+<path d="M907.9,280.0 v-88.9 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v88.9 z" fill="var(--s3)"><title>Bee · DiT 样本 A · 21.89</title></path>
+<text x="919.9" y="182.1" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">21.9</text>
+<path d="M933.9,280.0 v-89.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v89.3 z" fill="var(--s2)"><title>Bee · DiT 样本 B · 21.95</title></path>
+<text x="945.9" y="181.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">21.9</text>
+<text x="919.9" y="310" text-anchor="middle" fill="var(--fg2)">51k 面 ⚠</text>
+</svg><div class="legend"><span style="--c:var(--s1)">VAE 重建</span><span style="--c:var(--s3)">DiT 样本 A</span><span style="--c:var(--s2)">DiT 样本 B</span></div>
+<figcaption>渲染视角与 VAE 页第 2.3 节相同（3 个侧视 + 俯视），统计前景像素。两个样本只在初始噪声和 UV 岛随机编码上不同。</figcaption></figure></div>
+<div class="tablewrap"><table><tr><th>案例</th><th class=n>面数</th><th class=n>VAE 重建 dB</th><th class=n>DiT 最好样本 dB</th><th class=n>相邻面色差 真值</th><th class=n>重建</th><th class=n>样本 A</th></tr><tr><td>Spider-Man ⚠</td><td class=n>99,208</td><td class=n>27.28</td><td class=n>21.73</td><td class=n>0.015</td><td class=n>0.026</td><td class=n>0.024</td></tr><tr><td>Soldier ⚠</td><td class=n>31,263</td><td class=n>33.05</td><td class=n>26.61</td><td class=n>0.023</td><td class=n>0.034</td><td class=n>0.029</td></tr><tr><td>救护车 ⚠</td><td class=n>48,270</td><td class=n>31.34</td><td class=n>26.27</td><td class=n>0.020</td><td class=n>0.033</td><td class=n>0.027</td></tr><tr><td>Enternity Demon ⚠</td><td class=n>50,026</td><td class=n>38.10</td><td class=n>28.70</td><td class=n>0.026</td><td class=n>0.030</td><td class=n>0.026</td></tr><tr><td>Hello Neighbor</td><td class=n>23,610</td><td class=n>31.16</td><td class=n>20.85</td><td class=n>0.019</td><td class=n>0.028</td><td class=n>0.023</td></tr><tr><td>舞蹈面具</td><td class=n>8,046</td><td class=n>32.59</td><td class=n>22.96</td><td class=n>0.053</td><td class=n>0.077</td><td class=n>0.074</td></tr><tr><td>Rippersnapper</td><td class=n>5,746</td><td class=n>24.57</td><td class=n>19.36</td><td class=n>0.066</td><td class=n>0.096</td><td class=n>0.084</td></tr><tr><td>Shadowsun</td><td class=n>7,434</td><td class=n>26.36</td><td class=n>20.19</td><td class=n>0.059</td><td class=n>0.066</td><td class=n>0.070</td></tr><tr><td>Dog ⚠</td><td class=n>33,384</td><td class=n>34.84</td><td class=n>27.59</td><td class=n>0.024</td><td class=n>0.052</td><td class=n>0.035</td></tr><tr><td>Bee ⚠</td><td class=n>51,731</td><td class=n>28.07</td><td class=n>21.95</td><td class=n>0.014</td><td class=n>0.020</td><td class=n>0.020</td></tr><tr><td><strong>中位数</strong></td><td class=n></td><td class=n>31.25</td><td class=n>22.45</td><td class=n>0.023</td><td class=n>0.034</td><td class=n>0.028</td></tr></table></div>
+<p class="small">相邻面色差 = 边相邻两面在面心处颜色差的平均，与第 3 节同一统计量；样本的数值与真值 / 重建同量级说明没有迪斯科球效应。PSNR 衡量的是"是否与这一张真值一致"，图像条件下有意义，但对视图看不到的区域（内部、底部）生成的是另一种合理纹理。</p>
+<h3>5.1 交互式 3D 对比</h3>
+<p>拖动旋转、滚轮缩放；四个视口共享相机：真值 / VAE 重建 / DiT 样本 A / 样本 B。每个案例上方是模型实际看到的 6 个条件视图，下方是烘焙到 GT UV 布局的贴图，可点开看原图。</p>
+
+<div class="case" data-uid="522f50cae5cc4a6c9a7fbd5b4e36bbbf">
+<div class="casehead"><div><strong>Spider-Man</strong> <span class="mono">522f50cae5cc4a6c9a7fbd5b4e36bbbf</span> <span class="meta">99,208 面 · 72,582 token · held-out · 超出训练面数上限 3 万</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>27.3</strong> · DiT 样本 A <strong>21.6</strong> · 样本 B <strong>21.7</strong> dB · 相邻面色差 真值 0.015 / 重建 0.026 / 样本 0.024</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/thumb.jpg" alt="522f50cae5cc4a6c9a7fbd5b4e36bbbf 缩略图" width="480" height="480"><canvas aria-label="522f50cae5cc4a6c9a7fbd5b4e36bbbf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-522f50ca" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-522f50ca"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-522f50ca" value="0" checked> GT</label><label><input type="radio" name="m-522f50ca" value="1"> VAE 重建</label><label><input type="radio" name="m-522f50ca" value="2"> 样本 A</label><label><input type="radio" name="m-522f50ca" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_522f50ca.jpg" target="_blank" rel="noopener"><img src="dit/cond_522f50ca.jpg" alt="Spider-Man 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="6746867266f04bf5aed3b4f0a6df278c">
+<div class="casehead"><div><strong>Soldier</strong> <span class="mono">6746867266f04bf5aed3b4f0a6df278c</span> <span class="meta">31,263 面 · 29,886 token · held-out · 超出训练面数上限 3 万</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>33.1</strong> · DiT 样本 A <strong>26.6</strong> · 样本 B <strong>26.6</strong> dB · 相邻面色差 真值 0.023 / 重建 0.034 / 样本 0.029</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/6746867266f04bf5aed3b4f0a6df278c/thumb.jpg" alt="6746867266f04bf5aed3b4f0a6df278c 缩略图" width="480" height="480"><canvas aria-label="6746867266f04bf5aed3b4f0a6df278c 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-67468672" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-67468672"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-67468672" value="0" checked> GT</label><label><input type="radio" name="m-67468672" value="1"> VAE 重建</label><label><input type="radio" name="m-67468672" value="2"> 样本 A</label><label><input type="radio" name="m-67468672" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_67468672.jpg" target="_blank" rel="noopener"><img src="dit/cond_67468672.jpg" alt="Soldier 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa">
+<div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">48,270 面 · 42,749 token · held-out · 超出训练面数上限 3 万</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>31.3</strong> · DiT 样本 A <strong>26.3</strong> · 样本 B <strong>26.0</strong> dB · 相邻面色差 真值 0.020 / 重建 0.033 / 样本 0.027</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480"><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-994aec41" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-994aec41"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-994aec41" value="0" checked> GT</label><label><input type="radio" name="m-994aec41" value="1"> VAE 重建</label><label><input type="radio" name="m-994aec41" value="2"> 样本 A</label><label><input type="radio" name="m-994aec41" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_994aec41.jpg" target="_blank" rel="noopener"><img src="dit/cond_994aec41.jpg" alt="救护车 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="ecbab41a56c24b7fa88203f415b56d5a">
+<div class="casehead"><div><strong>Enternity Demon</strong> <span class="mono">ecbab41a56c24b7fa88203f415b56d5a</span> <span class="meta">50,026 面 · 43,298 token · held-out · 超出训练面数上限 3 万</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>38.1</strong> · DiT 样本 A <strong>28.4</strong> · 样本 B <strong>28.7</strong> dB · 相邻面色差 真值 0.026 / 重建 0.030 / 样本 0.026</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/ecbab41a56c24b7fa88203f415b56d5a/thumb.jpg" alt="ecbab41a56c24b7fa88203f415b56d5a 缩略图" width="480" height="480"><canvas aria-label="ecbab41a56c24b7fa88203f415b56d5a 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-ecbab41a" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-ecbab41a"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-ecbab41a" value="0" checked> GT</label><label><input type="radio" name="m-ecbab41a" value="1"> VAE 重建</label><label><input type="radio" name="m-ecbab41a" value="2"> 样本 A</label><label><input type="radio" name="m-ecbab41a" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_ecbab41a.jpg" target="_blank" rel="noopener"><img src="dit/cond_ecbab41a.jpg" alt="Enternity Demon 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="53bf4971eccb4d5dbe20db083919c44d">
+<div class="casehead"><div><strong>Hello Neighbor</strong> <span class="mono">53bf4971eccb4d5dbe20db083919c44d</span> <span class="meta">23,610 面 · 23,013 token · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>31.2</strong> · DiT 样本 A <strong>20.8</strong> · 样本 B <strong>20.8</strong> dB · 相邻面色差 真值 0.019 / 重建 0.028 / 样本 0.023</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/53bf4971eccb4d5dbe20db083919c44d/thumb.jpg" alt="53bf4971eccb4d5dbe20db083919c44d 缩略图" width="480" height="480"><canvas aria-label="53bf4971eccb4d5dbe20db083919c44d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-53bf4971" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-53bf4971"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-53bf4971" value="0" checked> GT</label><label><input type="radio" name="m-53bf4971" value="1"> VAE 重建</label><label><input type="radio" name="m-53bf4971" value="2"> 样本 A</label><label><input type="radio" name="m-53bf4971" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_53bf4971.jpg" target="_blank" rel="noopener"><img src="dit/cond_53bf4971.jpg" alt="Hello Neighbor 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="e610ab728a124989882c209d764f046d">
+<div class="casehead"><div><strong>舞蹈面具</strong> <span class="mono">e610ab728a124989882c209d764f046d</span> <span class="meta">8,046 面 · 8,046 token · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>32.6</strong> · DiT 样本 A <strong>22.8</strong> · 样本 B <strong>23.0</strong> dB · 相邻面色差 真值 0.053 / 重建 0.077 / 样本 0.074</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/e610ab728a124989882c209d764f046d/thumb.jpg" alt="e610ab728a124989882c209d764f046d 缩略图" width="480" height="480"><canvas aria-label="e610ab728a124989882c209d764f046d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-e610ab72" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-e610ab72"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-e610ab72" value="0" checked> GT</label><label><input type="radio" name="m-e610ab72" value="1"> VAE 重建</label><label><input type="radio" name="m-e610ab72" value="2"> 样本 A</label><label><input type="radio" name="m-e610ab72" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_e610ab72.jpg" target="_blank" rel="noopener"><img src="dit/cond_e610ab72.jpg" alt="舞蹈面具 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/e610ab728a124989882c209d764f046d/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/e610ab728a124989882c209d764f046d/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/e610ab728a124989882c209d764f046d/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/e610ab728a124989882c209d764f046d/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="1aac7b79651d4bad96e49c13d3a8975e">
+<div class="casehead"><div><strong>Rippersnapper</strong> <span class="mono">1aac7b79651d4bad96e49c13d3a8975e</span> <span class="meta">5,746 面 · 5,746 token · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>24.6</strong> · DiT 样本 A <strong>19.3</strong> · 样本 B <strong>19.4</strong> dB · 相邻面色差 真值 0.066 / 重建 0.096 / 样本 0.084</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/1aac7b79651d4bad96e49c13d3a8975e/thumb.jpg" alt="1aac7b79651d4bad96e49c13d3a8975e 缩略图" width="480" height="480"><canvas aria-label="1aac7b79651d4bad96e49c13d3a8975e 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-1aac7b79" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-1aac7b79"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-1aac7b79" value="0" checked> GT</label><label><input type="radio" name="m-1aac7b79" value="1"> VAE 重建</label><label><input type="radio" name="m-1aac7b79" value="2"> 样本 A</label><label><input type="radio" name="m-1aac7b79" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_1aac7b79.jpg" target="_blank" rel="noopener"><img src="dit/cond_1aac7b79.jpg" alt="Rippersnapper 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="209865ec00284af5b34d3faa999e1baf">
+<div class="casehead"><div><strong>Shadowsun</strong> <span class="mono">209865ec00284af5b34d3faa999e1baf</span> <span class="meta">7,434 面 · 7,434 token · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>26.4</strong> · DiT 样本 A <strong>20.1</strong> · 样本 B <strong>20.2</strong> dB · 相邻面色差 真值 0.059 / 重建 0.066 / 样本 0.070</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/209865ec00284af5b34d3faa999e1baf/thumb.jpg" alt="209865ec00284af5b34d3faa999e1baf 缩略图" width="480" height="480"><canvas aria-label="209865ec00284af5b34d3faa999e1baf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-209865ec" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-209865ec"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-209865ec" value="0" checked> GT</label><label><input type="radio" name="m-209865ec" value="1"> VAE 重建</label><label><input type="radio" name="m-209865ec" value="2"> 样本 A</label><label><input type="radio" name="m-209865ec" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_209865ec.jpg" target="_blank" rel="noopener"><img src="dit/cond_209865ec.jpg" alt="Shadowsun 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="9a77cdf9dac043039d516fc3a764e8f5">
+<div class="casehead"><div><strong>Dog</strong> <span class="mono">9a77cdf9dac043039d516fc3a764e8f5</span> <span class="meta">33,384 面 · 28,399 token · held-out · 超出训练面数上限 3 万</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>34.8</strong> · DiT 样本 A <strong>27.6</strong> · 样本 B <strong>27.4</strong> dB · 相邻面色差 真值 0.024 / 重建 0.052 / 样本 0.035</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/9a77cdf9dac043039d516fc3a764e8f5/thumb.jpg" alt="9a77cdf9dac043039d516fc3a764e8f5 缩略图" width="480" height="480"><canvas aria-label="9a77cdf9dac043039d516fc3a764e8f5 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-9a77cdf9" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-9a77cdf9"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-9a77cdf9" value="0" checked> GT</label><label><input type="radio" name="m-9a77cdf9" value="1"> VAE 重建</label><label><input type="radio" name="m-9a77cdf9" value="2"> 样本 A</label><label><input type="radio" name="m-9a77cdf9" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_9a77cdf9.jpg" target="_blank" rel="noopener"><img src="dit/cond_9a77cdf9.jpg" alt="Dog 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="60ef2e59ee2a492a9677c75b745cb9a1">
+<div class="casehead"><div><strong>Bee</strong> <span class="mono">60ef2e59ee2a492a9677c75b745cb9a1</span> <span class="meta">51,731 面 · 38,538 token · held-out · 超出训练面数上限 3 万</span></div>
+<div class="meta">4 视角渲染 PSNR：VAE 重建 <strong>28.1</strong> · DiT 样本 A <strong>21.9</strong> · 样本 B <strong>21.9</strong> dB · 相邻面色差 真值 0.014 / 重建 0.020 / 样本 0.020</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/60ef2e59ee2a492a9677c75b745cb9a1/thumb.jpg" alt="60ef2e59ee2a492a9677c75b745cb9a1 缩略图" width="480" height="480"><canvas aria-label="60ef2e59ee2a492a9677c75b745cb9a1 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels four"><span>GT 原始贴图</span><span>VAE 重建（表 latent 91 点）</span><span>DiT 样本 A</span><span>DiT 样本 B</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-60ef2e59" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-60ef2e59"> 单视图</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-60ef2e59" value="0" checked> GT</label><label><input type="radio" name="m-60ef2e59" value="1"> VAE 重建</label><label><input type="radio" name="m-60ef2e59" value="2"> 样本 A</label><label><input type="radio" name="m-60ef2e59" value="3"> 样本 B</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>条件视图（6 个无光照渲染，模型只看到这些）与烘焙贴图：真值 / VAE 重建 / 样本 A / 样本 B</span><button type="button" class="texzoom">放大</button></div>
+<figure class="imgfig condfig"><a href="dit/cond_60ef2e59.jpg" target="_blank" rel="noopener"><img src="dit/cond_60ef2e59.jpg" alt="Bee 条件视图" loading="lazy"></a></figure>
+<div class="texpair four"><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_t91_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_t91_disp.jpg" alt="VAE 重建" loading="lazy"></a><figcaption>VAE 重建</figcaption></figure>
+<figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_dit_a_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_dit_a_disp.jpg" alt="DiT 样本 A" loading="lazy"></a><figcaption>DiT 样本 A</figcaption></figure>
+<figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_dit_b_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_dit_b_disp.jpg" alt="DiT 样本 B" loading="lazy"></a><figcaption>DiT 样本 B</figcaption></figure></div></div>
+</div>
+<h3>5.2 多视角渲染对比</h3>
+<p class="small">每张四行为四个视角，列为真值 / VAE 重建 / 样本 A / 样本 B，最右一列为 6 个条件视图；像素颜色由解码器直接给出，不经过 UV 烘焙。</p>
+<div class="figrow"><figure class="wide imgfig"><img src="dit/3d_522f50ca.jpg" alt="Spider-Man 多视角对比" loading="lazy"><figcaption><strong>Spider-Man</strong>（99,208 面）· 列：真值 / VAE 重建 27.28 / DiT 样本 A 21.57 / 样本 B 21.73 dB / 右侧为 6 个条件视图</figcaption></figure><figure class="wide imgfig"><img src="dit/3d_67468672.jpg" alt="Soldier 多视角对比" loading="lazy"><figcaption><strong>Soldier</strong>（31,263 面）· 列：真值 / VAE 重建 33.05 / DiT 样本 A 26.61 / 样本 B 26.58 dB / 右侧为 6 个条件视图</figcaption></figure><details><summary>救护车（48,270 面）· 重建 31.34 / 样本 26.27, 25.97 dB</summary><figure class="wide imgfig"><img src="dit/3d_994aec41.jpg" alt="救护车 多视角对比" loading="lazy"><figcaption><strong>救护车</strong>（48,270 面）· 列：真值 / VAE 重建 31.34 / DiT 样本 A 26.27 / 样本 B 25.97 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>Enternity Demon（50,026 面）· 重建 38.10 / 样本 28.39, 28.70 dB</summary><figure class="wide imgfig"><img src="dit/3d_ecbab41a.jpg" alt="Enternity Demon 多视角对比" loading="lazy"><figcaption><strong>Enternity Demon</strong>（50,026 面）· 列：真值 / VAE 重建 38.10 / DiT 样本 A 28.39 / 样本 B 28.70 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>Hello Neighbor（23,610 面）· 重建 31.16 / 样本 20.85, 20.79 dB</summary><figure class="wide imgfig"><img src="dit/3d_53bf4971.jpg" alt="Hello Neighbor 多视角对比" loading="lazy"><figcaption><strong>Hello Neighbor</strong>（23,610 面）· 列：真值 / VAE 重建 31.16 / DiT 样本 A 20.85 / 样本 B 20.79 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>舞蹈面具（8,046 面）· 重建 32.59 / 样本 22.84, 22.96 dB</summary><figure class="wide imgfig"><img src="dit/3d_e610ab72.jpg" alt="舞蹈面具 多视角对比" loading="lazy"><figcaption><strong>舞蹈面具</strong>（8,046 面）· 列：真值 / VAE 重建 32.59 / DiT 样本 A 22.84 / 样本 B 22.96 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>Rippersnapper（5,746 面）· 重建 24.57 / 样本 19.32, 19.36 dB</summary><figure class="wide imgfig"><img src="dit/3d_1aac7b79.jpg" alt="Rippersnapper 多视角对比" loading="lazy"><figcaption><strong>Rippersnapper</strong>（5,746 面）· 列：真值 / VAE 重建 24.57 / DiT 样本 A 19.32 / 样本 B 19.36 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>Shadowsun（7,434 面）· 重建 26.36 / 样本 20.11, 20.19 dB</summary><figure class="wide imgfig"><img src="dit/3d_209865ec.jpg" alt="Shadowsun 多视角对比" loading="lazy"><figcaption><strong>Shadowsun</strong>（7,434 面）· 列：真值 / VAE 重建 26.36 / DiT 样本 A 20.11 / 样本 B 20.19 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>Dog（33,384 面）· 重建 34.84 / 样本 27.59, 27.44 dB</summary><figure class="wide imgfig"><img src="dit/3d_9a77cdf9.jpg" alt="Dog 多视角对比" loading="lazy"><figcaption><strong>Dog</strong>（33,384 面）· 列：真值 / VAE 重建 34.84 / DiT 样本 A 27.59 / 样本 B 27.44 dB / 右侧为 6 个条件视图</figcaption></figure></details><details><summary>Bee（51,731 面）· 重建 28.07 / 样本 21.89, 21.95 dB</summary><figure class="wide imgfig"><img src="dit/3d_60ef2e59.jpg" alt="Bee 多视角对比" loading="lazy"><figcaption><strong>Bee</strong>（51,731 面）· 列：真值 / VAE 重建 28.07 / DiT 样本 A 21.89 / 样本 B 21.95 dB / 右侧为 6 个条件视图</figcaption></figure></details></div>
+
+<h2>6. 全规模训练（进行中）</h2>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="全规模 DiT（91 点 VAE，≤ 3 万面，16 卡）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">全规模 DiT（91 点 VAE，≤ 3 万面，16 卡）</text>
 <line x1="44" x2="626" y1="245.0" y2="245.0" stroke="var(--grid)"/>
@@ -190,14 +449,74 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 <text x="620.0" y="94.2" text-anchor="end" fill="var(--s3)" font-weight="600">去噪 PSNR (t=0.5) 29.95</text>
 </svg><div class="legend"><span style="--c:var(--s1)">采样 PSNR</span><span style="--c:var(--s3)">去噪 PSNR</span></div>
 <figcaption>Slurm 36244639，89,469 个 ≤ 3 万面的 mesh，每步 16 个，1.5 秒/步，100k 步约 40 小时。去噪能力持续上升，采样 PSNR 目前在 19–20 dB 徘徊。</figcaption></figure></div>
-<div class="figrow"><figure class="wide imgfig"><img src="dit/full_10k.jpg" alt="全规模样本" loading="lazy"><figcaption>10k 步（2–2.4 万面的 val mesh，引导 4）：人物、帽子小人、手雷接近真值；满身涂鸦的人物变成横向拉丝的色块，高频图案是当前最弱处。</figcaption></figure></div>
+<details><summary>历史样本图：10k 步时的 val mesh（2–2.4 万面）</summary><figure class="wide imgfig"><img src="dit/full_10k.jpg" alt="全规模样本" loading="lazy"><figcaption>10k 步（2–2.4 万面的 val mesh，引导 4）：人物、帽子小人、手雷接近真值；满身涂鸦的人物变成横向拉丝的色块，高频图案是当前最弱处。</figcaption></figure></details>
 
-<h2>6. 下一步</h2>
+<h2>7. 下一步</h2>
 <ul>
 <li>全规模跑到 30k 后看高频图案是否改善；若仍是拉丝块，消融接缝权重和局部先验对面内细节的抑制。</li>
 <li>预计算并缓存 VAE latent 与 DINO 特征，单步时间可降一半以上。</li>
 <li>超过 3 万面的 mesh：按锚点分组的局部注意力 + 全局 token。</li>
 <li>评测补充：多视角渲染图上的 PSNR / LPIPS / FID，便于和其他方法比较。</li>
 </ul>
-<footer>生成脚本 build_dit_page.py。</footer>
-</div></body></html>
+<footer>生成脚本 build_dit_page.py；展示案例由 scripts/dit_showcase.py 生成（Objaverse 1.0 held-out，许可见 README）。</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  if (!window.THREE) return;
+  const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  if (!canWebGL) return;
+  const NAMES = ['gt_dil', 'recon_t91', 'recon_dit_a', 'recon_dit_b'];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function initCase(el) {
+    const uid = el.dataset.uid, canvas = el.querySelector('canvas'), poster = el.querySelector('.poster'), msg = el.querySelector('.loadmsg');
+    msg.hidden = false;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setScissorTest(true);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50); const HOME = new THREE.Vector3(0.95, 0.55, 1.75); camera.position.copy(HOME);
+    const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = !reduced; controls.dampingFactor = 0.08; controls.target.set(0, 0, 0);
+    const spinBox = el.querySelector('.spin'); if (reduced) spinBox.checked = false;
+    controls.autoRotate = spinBox.checked; controls.autoRotateSpeed = 1.2; let resumeT = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(resumeT); });
+    controls.addEventListener('end', () => { clearTimeout(resumeT); resumeT = setTimeout(() => { controls.autoRotate = spinBox.checked; }, 3000); });
+    spinBox.addEventListener('change', () => { controls.autoRotate = spinBox.checked; });
+    const tl = new THREE.TextureLoader(); const tex = NAMES.map(n => { const t = tl.load(`cases/${uid}/${n}.jpg`, () => render()); t.encoding = THREE.sRGBEncoding; t.flipY = false; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; });
+    const unlit = tex.map(t => new THREE.MeshBasicMaterial({ map: t }));
+    let mesh = null, single = false, which = 0, visible = true, needs = true;
+    new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
+      g.scene.traverse(o => { if (o.isMesh) { if (!mesh) mesh = o; o.material = unlit[0]; } });
+      scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
+    }, undefined, () => { msg.textContent = '模型加载失败，显示缩略图'; });
+    function size() {
+      const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+      if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) renderer.setSize(w, h, false);
+      return [w, h];
+    }
+    function render() {
+      const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = unlit;
+      if (single) {
+        camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h); mesh.material = mats[which]; renderer.render(scene, camera);
+      } else {
+        const NP = NAMES.length, vw = Math.floor(w / NP); camera.aspect = vw / h; camera.updateProjectionMatrix();
+        for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, 0, vw, h); renderer.setScissor(i * vw, 0, vw, h); mesh.material = mats[i]; renderer.render(scene, camera); }
+      }
+    }
+    function loop() { if (!visible) return; controls.update(); render(); requestAnimationFrame(loop); }
+    controls.addEventListener('change', () => { needs = true; });
+    const sel = el.querySelector('.singlesel'); el.querySelector('.single').addEventListener('change', e => { single = e.target.checked; sel.hidden = !single; el.querySelector('.vlabels').style.visibility = single ? 'hidden' : 'visible'; });
+    sel.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', e => { which = +e.target.value; }));
+    el.querySelector('.reset').addEventListener('click', () => { camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update(); });
+    new ResizeObserver(() => { needs = true; }).observe(canvas);
+    const io = new IntersectionObserver(es => { es.forEach(x => { const was = visible; visible = x.isIntersecting; if (visible && !was) loop(); }); }, { rootMargin: '200px' });
+    io.observe(el); loop();
+  }
+  const pending = new IntersectionObserver(es => { es.forEach(x => { if (x.isIntersecting) { pending.unobserve(x.target); initCase(x.target); } }); }, { rootMargin: '600px' });
+  document.querySelectorAll('.case').forEach(el => pending.observe(el));
+})();
+document.querySelectorAll('.texzoom').forEach(b => b.addEventListener('click', () => { const g = b.closest('.texpanel').querySelector('.texpair'); const big = g.classList.toggle('big'); b.textContent = big ? '缩小' : '放大'; }));
+</script>
+
+</body></html>
