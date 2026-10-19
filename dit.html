@@ -62,7 +62,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
 details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px} details[open] summary{margin-bottom:8px}
 .vlabels.four{grid-template-columns:repeat(4,1fr)} .texpair.four{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none} .case .canvaswrap{aspect-ratio:4/1.15} @media (max-width:700px){.case .canvaswrap{aspect-ratio:4/1.6}}
-.condfig{margin:0 0 10px} .condfig img{width:100%;max-width:980px;height:auto;display:block;border-radius:4px}</style>
+.condfig{margin:0 0 10px} .arch svg{display:block;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:6px} .condfig img{width:100%;max-width:980px;height:auto;display:block;border-radius:4px}</style>
 </head><body><div class="wrap">
 <header>
 <p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="vae.html">← 纹理 VAE</a></p>
@@ -79,6 +79,103 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 </div>
 
 <h2>1. 设计</h2>
+<figure class="arch"><svg viewBox="0 0 1180 700" width="100%" role="img" aria-label="纹理 DiT 框图：mesh 决定 token 布局和每 token 几何条件；6 个条件视图经 DINOv2 进入交叉注意力并逐格点回投为颜色条件；12 层 DiT 块预测流匹配速度；训练时 VAE 编码真值得到 x0 并加接缝损失，采样时 50 步 Euler 后经 VAE 解码器得到每面颜色" style="max-width:1180px;font-family:var(--font-ui);font-size:12px;color:var(--fg)">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg2)"/></marker></defs>
+<text x="135" y="22" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="13">输入</text>
+<text x="430" y="22" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="13">地址与条件（全部由几何和图像算出，不学习布局）</text>
+<text x="755" y="22" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="13">DiT：只生成 token 内容</text>
+<text x="1040" y="22" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="13">训练 / 采样</text>
+<rect x="20" y="50" width="230" height="54" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="135.0" y="74" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">Mesh</text>
+<text x="135.0" y="88" text-anchor="middle" fill="var(--fg2)" font-size="11.5">顶点、面（GLB 索引顺序）</text>
+<rect x="20" y="290" width="230" height="70" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="135.0" y="314" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">6 个条件视图</text>
+<text x="135.0" y="329" text-anchor="middle" fill="var(--fg2)" font-size="11.5">224 px 无光照反照率渲染</text>
+<text x="135.0" y="344" text-anchor="middle" fill="var(--fg2)" font-size="11.5">4 侧视 + 俯视 + 仰视，白底</text>
+<rect x="20" y="540" width="230" height="54" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="135.0" y="564" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">真值纹理（仅训练）</text>
+<text x="135.0" y="578" text-anchor="middle" fill="var(--fg2)" font-size="11.5">每面 91 格点颜色（缓存）</text>
+<rect x="300" y="44" width="270" height="92" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="435.0" y="72" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">几何地址（与 VAE 相同）</text>
+<text x="435.0" y="86" text-anchor="middle" fill="var(--fg2)" font-size="11.5">面质心 FPS 锚点 N = min(16384, 面数)</text>
+<text x="435.0" y="102" text-anchor="middle" fill="var(--fg2)" font-size="11.5">面 → 最近锚点格子 → 按距离分 8 槽 + 溢出槽</text>
+<text x="435.0" y="116" text-anchor="middle" fill="var(--fg2)" font-size="11.5">每个被占用 (锚点, 槽位) 一个 token，T ≈ 面数</text>
+<rect x="300" y="166" width="270" height="100" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="435.0" y="190" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">每 token 条件 c_tok（486 维）</text>
+<text x="435.0" y="205" text-anchor="middle" fill="var(--fg2)" font-size="11.5">角点几何 · 到锚点位移 · 法向</text>
+<text x="435.0" y="220" text-anchor="middle" fill="var(--fg2)" font-size="11.5">锚点 Fourier PE · 槽位 one-hot</text>
+<text x="435.0" y="235" text-anchor="middle" fill="var(--fg2)" font-size="11.5">UV 岛随机码 (32 维，每次采样重抽)</text>
+<text x="435.0" y="250" text-anchor="middle" fill="var(--fg2)" font-size="11.5">回投格点颜色 91 × (RGB + 可见)</text>
+<rect x="300" y="290" width="270" height="70" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="435.0" y="314" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">逐格点回投</text>
+<text x="435.0" y="329" text-anchor="middle" fill="var(--fg2)" font-size="11.5">每面每个格点投到各视图取像素</text>
+<text x="435.0" y="344" text-anchor="middle" fill="var(--fg2)" font-size="11.5">像素的面 id 等于本面才算可见，可见视图取均值</text>
+<rect x="300" y="384" width="270" height="54" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="435.0" y="408" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">DINOv2 ViT-B/14（冻结）</text>
+<text x="435.0" y="422" text-anchor="middle" fill="var(--fg2)" font-size="11.5">6 × (1 CLS + 256 patch) 个 768 维 token</text>
+<rect x="300" y="520" width="270" height="94" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="435.0" y="548" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">VAE 编码器（冻结，仅训练）</text>
+<text x="435.0" y="564" text-anchor="middle" fill="var(--fg2)" font-size="11.5">表 latent (N, 9 槽 × 3 角点 × 16)</text>
+<text x="435.0" y="578" text-anchor="middle" fill="var(--fg2)" font-size="11.5">取占用块 → x₀ ∈ ℝ^{T×48}，按维标准化</text>
+<text x="435.0" y="594" text-anchor="middle" fill="var(--fg2)" font-size="11.5">x_t = (1−t)·x₀ + t·ε，t 一半 logit-normal 一半均匀，时间平移 3</text>
+<rect x="640" y="166" width="230" height="44" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="755.0" y="184" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">in_proj</text>
+<text x="755.0" y="200" text-anchor="middle" fill="var(--fg2)" font-size="11.5">[x_t ‖ c_tok] → 768</text>
+<rect x="628" y="236" width="254" height="300" rx="9" fill="none" stroke="var(--s1)" stroke-width="1.8"/>
+<text x="755" y="256" text-anchor="middle" font-weight="600" fill="var(--s1)" font-size="12.5">DiT 块 × 12（768 宽，12 头，1.6 亿参数）</text>
+<rect x="640" y="268" width="230" height="44" rx="7" fill="var(--surface)" stroke="var(--s1)" stroke-width="1.4"/>
+<text x="755.0" y="286" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">adaLN</text>
+<text x="755.0" y="302" text-anchor="middle" fill="var(--fg2)" font-size="11.5">尺度 / 偏置 / 门 ← t 嵌入 + 图像 CLS 均值</text>
+<rect x="640" y="322" width="230" height="88" rx="7" fill="var(--surface)" stroke="var(--s1)" stroke-width="1.4"/>
+<text x="755.0" y="340" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">自注意力</text>
+<text x="755.0" y="355" text-anchor="middle" fill="var(--fg2)" font-size="11.5">RoPE-6D（位置 + 法向）</text>
+<text x="755.0" y="370" text-anchor="middle" fill="var(--fg2)" font-size="11.5">按头的距离核阶梯：σ 从 0.05 到 1（局部→全局）</text>
+<text x="755.0" y="385" text-anchor="middle" fill="var(--fg2)" font-size="11.5">同 UV 岛偏置（岛码拼进 q、k）</text>
+<text x="755.0" y="400" text-anchor="middle" fill="var(--fg2)" font-size="11.5">+ 8 个全局寄存 token</text>
+<rect x="640" y="420" width="230" height="44" rx="7" fill="var(--surface)" stroke="var(--s1)" stroke-width="1.4"/>
+<text x="755.0" y="438" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">图像交叉注意力</text>
+<text x="755.0" y="454" text-anchor="middle" fill="var(--fg2)" font-size="11.5">q = token，k/v = 图像 token，零初始化门</text>
+<rect x="640" y="474" width="230" height="44" rx="7" fill="var(--surface)" stroke="var(--s1)" stroke-width="1.4"/>
+<text x="755.0" y="492" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">MLP</text>
+<text x="755.0" y="508" text-anchor="middle" fill="var(--fg2)" font-size="11.5">768 → 3072 → 768，GELU</text>
+<rect x="640" y="560" width="230" height="54" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="755.0" y="584" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">输出：速度 v</text>
+<text x="755.0" y="598" text-anchor="middle" fill="var(--fg2)" font-size="11.5">adaLN → 线性 → ℝ^{T×48}</text>
+<rect x="930" y="44" width="230" height="128" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="2 3"/>
+<text x="1045.0" y="82" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">采样</text>
+<text x="1045.0" y="97" text-anchor="middle" fill="var(--fg2)" font-size="11.5">x₁ ~ N(0, 1)，50 步 Euler</text>
+<text x="1045.0" y="112" text-anchor="middle" fill="var(--fg2)" font-size="11.5">无分类器引导 4（空图像 token）</text>
+<text x="1045.0" y="127" text-anchor="middle" fill="var(--fg2)" font-size="11.5">→ x̂₀ → tokens_to_table</text>
+<text x="1045.0" y="142" text-anchor="middle" fill="var(--fg2)" font-size="11.5">空槽位 = 先验均值 0</text>
+<rect x="930" y="206" width="230" height="70" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4"/>
+<text x="1045.0" y="230" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">VAE 解码器（冻结）</text>
+<text x="1045.0" y="245" text-anchor="middle" fill="var(--fg2)" font-size="11.5">每面 token → 任意重心坐标处颜色</text>
+<text x="1045.0" y="260" text-anchor="middle" fill="var(--fg2)" font-size="11.5">渲染 / 烘焙 / 评测</text>
+<rect x="930" y="486" width="230" height="128" rx="7" fill="var(--surface)" stroke="var(--line)" stroke-width="1.4" stroke-dasharray="5 4"/>
+<text x="1045.0" y="524" text-anchor="middle" font-weight="600" fill="var(--fg)" font-size="12.5">流匹配损失（训练）</text>
+<text x="1045.0" y="539" text-anchor="middle" fill="var(--fg2)" font-size="11.5">‖v − (ε − x₀)‖²</text>
+<text x="1045.0" y="554" text-anchor="middle" fill="var(--fg2)" font-size="11.5">+ 均色子空间加权 × 5</text>
+<text x="1045.0" y="569" text-anchor="middle" fill="var(--fg2)" font-size="11.5">+ 接缝损失 × 10：由 v 推出 x̂₀，</text>
+<text x="1045.0" y="584" text-anchor="middle" fill="var(--fg2)" font-size="11.5">冻结 VAE 解码后比较跨边颜色跳变</text>
+<polyline points="250,77 300,77" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="250,90 285,90 285,216 300,216" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="250,325 300,325" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="250,340 265,340 265,411 300,411" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="250,567 300,567" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="275,90 275,567" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)" stroke-dasharray="5 4"/>
+<polyline points="435,136 435,166" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/><text x="435.0" y="145.0" text-anchor="middle" fill="var(--fg2)" font-size="11">布局、锚点</text>
+<polyline points="435,290 435,266" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/><text x="445" y="282" text-anchor="start" fill="var(--fg2)" font-size="11">逐面格点颜色</text>
+<polyline points="570,216 605,216 605,180 640,180" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/><text x="575" y="210" text-anchor="start" fill="var(--fg2)" font-size="11">c_tok</text>
+<polyline points="570,567 615,567 615,200 640,200" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)" stroke-dasharray="5 4"/><text x="575" y="561" text-anchor="start" fill="var(--fg2)" font-size="11">x_t（训练）</text>
+<polyline points="570,411 590,411 590,640 895,640 895,442 870,442" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/><text x="742" y="635" text-anchor="middle" fill="var(--fg2)" font-size="11">图像 token</text>
+<polyline points="755,210 755,236" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="755,536 755,560" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)"/>
+<polyline points="870,600 930,600" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)" stroke-dasharray="5 4"/>
+<polyline points="870,574 912,574 912,108 930,108" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)" stroke-dasharray="2 3"/><text x="905" y="100" text-anchor="end" fill="var(--fg2)" font-size="11">每步 v</text>
+<polyline points="1045,172 1045,206" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)" stroke-dasharray="2 3"/><text x="1055" y="193" text-anchor="start" fill="var(--fg2)" font-size="11">x̂₀ 表 latent</text>
+<polyline points="1045,486 1045,276" fill="none" stroke="var(--fg2)" stroke-width="1.4" marker-end="url(#ah)" stroke-dasharray="5 4"/><text x="1055" y="385" text-anchor="start" fill="var(--fg2)" font-size="11">接缝损失：解码 x̂₀</text>
+<g font-size="11" fill="var(--fg2)"><line x1="20" y1="682" x2="52" y2="682" stroke="var(--fg2)" stroke-width="1.4"/><text x="58" y="686">训练与采样共用</text><line x1="180" y1="682" x2="212" y2="682" stroke="var(--fg2)" stroke-width="1.4" stroke-dasharray="5 4"/><text x="218" y="686">仅训练（需要真值）</text><line x1="360" y1="682" x2="392" y2="682" stroke="var(--fg2)" stroke-width="1.4" stroke-dasharray="2 3"/><text x="398" y="686">仅采样</text><rect x="500" y="674" width="32" height="14" rx="3" fill="none" stroke="var(--s1)" stroke-width="1.8"/><text x="538" y="686">可学习部分（其余冻结或由几何算出）</text></g>
+</svg><figcaption>数据流。左两列全部由几何和条件图像算出、不含可学习参数：mesh 决定 token 布局（哪个锚点、哪个槽位）和每 token 的几何条件，6 个条件视图一方面经冻结的 DINOv2 进入每层的交叉注意力，另一方面逐格点回投成颜色条件拼进 c_tok。蓝框内的 12 层 DiT 块是唯一训练的部分，它只填 token 内容并输出流匹配速度。训练时（虚线）冻结的 VAE 编码器把真值纹理变成 x₀，接缝损失再用冻结的 VAE 解码器把预测的 x̂₀ 解回颜色比较跨边跳变；采样时（点线）50 步 Euler 得到 x̂₀，放回表 latent（空槽位置 0）后由同一个 VAE 解码器求出任意表面点的颜色。</figcaption></figure>
 <div class="tablewrap"><table><tr><th>部分</th><th>做法</th><th>理由</th></tr><tr><td>token</td><td>VAE 表 latent 中每个被占用的 (锚点, 槽位) 一个 token，内容为 3 角点 × 16 通道 = 48 维；空槽不生成</td><td>空槽的后验已等于先验 (μ≈0, σ=1)，无需建模；token 数 ≈ 面数</td></tr><tr><td>结构由几何给出</td><td>锚点、格子、槽位全部由 mesh 算出，DiT 只填内容</td><td>生成时 mesh 已知，与图像 DiT 的像素网格同等地位</td></tr><tr><td>每 token 条件</td><td>角点几何、到锚点位移、法向、锚点位置编码、槽位 one-hot、UV 岛随机编码、图像回投颜色</td><td>与 VAE 共用同一套地址系统</td></tr><tr><td>注意力</td><td>自注意力 + RoPE-6D（位置 + 法向）+ 按头的距离核阶梯 + 同 UV 岛偏置 + 8 个全局寄存 token；每层图像交叉注意力</td><td>局部一致性和全局色板分开处理</td></tr><tr><td>目标</td><td>流匹配（速度），latent 按维度标准化；t 一半 logit-normal 一半均匀，SD3 时间平移 3</td><td>覆盖高噪声段（布局在这里决定）</td></tr><tr><td>附加损失</td><td>平均色子空间加权 ×5；接缝损失 ×10：用冻结 VAE 解码预测的干净 latent，比较跨边颜色跳变与真值</td><td>让模型学会面间连续</td></tr><tr><td>采样</td><td>50 步 Euler，无分类器引导强度 4；可选接缝引导</td><td></td></tr></table></div>
 
 <h2>2. 迭代过程</h2>
