@@ -69,11 +69,11 @@ details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(-
 <p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续：证据链</a><a href="dit.html">DiT 生成模型 →</a></p>
 <p class="eyebrow">TriTex · per-triangle texture VAE · 2026-10-19</p>
 <h1>纹理 VAE：从注意力 latent 到表 latent</h1>
-<p class="sub">把 latent 从"8192 个靠注意力读写的向量"改成"按锚点、槽位、角点组织、按下标读写的表"，再把编码器输入从每面 28 点加到 91 点。完整 Objaverse（≤ 20 万面）上，held-out 从旧模型最好的 25.89 dB 升到 32.43 dB。</p>
+<p class="sub">把 latent 从"8192 个靠注意力读写的向量"改成"按锚点、槽位、角点组织、按下标读写的表"，再把编码器输入从每面 28 点加到 91 点。完整 Objaverse（≤ 20 万面）上，held-out 面积 PSNR 从旧模型最好的 24.73 dB 升到 32.43 dB（val 前 32 个 mesh）；64 个 mesh 的终评从 25.89 升到 32.65 dB。</p>
 </header>
 <div class="tiles">
-<div class="tile"><div class="l">注意力 latent（200k + 退火）</div><div class="v">25.89 dB</div><div class="d">旧配方最好结果，val 前 32 个</div></div>
-<div class="tile"><div class="l">表 latent，28 点输入</div><div class="v">28.83 dB</div><div class="d">50k + 10k 退火；28 点 interp 上界 29.08</div></div>
+<div class="tile"><div class="l">注意力 latent（200k + 退火）</div><div class="v">24.73 dB</div><div class="d">旧配方最好结果，val 前 32 个；64 mesh 终评 25.89</div></div>
+<div class="tile"><div class="l">表 latent，28 点输入</div><div class="v">28.83 dB</div><div class="d">50k + 10k 退火；28 点 interp 上界 29.08；终评 30.23</div></div>
 <div class="tile"><div class="l">表 latent，91 点 + 16 通道</div><div class="v good">32.43 dB</div><div class="d">64 个 mesh 终评 32.65 / 29.34 / 38.25</div></div>
 <div class="tile"><div class="l">10 个展示案例 3D 渲染</div><div class="v good">9 / 10</div><div class="d">表 91 点胜出，通常高 3–7 dB</div></div>
 </div>
@@ -191,7 +191,8 @@ details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(-
 <text x="620.0" y="39.7" text-anchor="end" fill="var(--s4)" font-weight="600">91 点 + 退火 32.43</text>
 </svg><div class="legend"><span style="--c:var(--s2)">注意力 latent</span><span style="--c:var(--s3)">表 latent 28 点</span><span style="--c:var(--s1)">表 latent 91 点</span><span style="--c:var(--fg2)">28 点 + 退火</span><span style="--c:var(--s4)">91 点 + 退火</span><span class="dash">const / interp</span></div>
 <figcaption>三条主曲线同为 50k 步常数学习率、16 卡、每步 16 个 mesh。表 latent 28 点 7.5k 步就超过注意力模型的 50k 终值，20k 后进入平台（受 28 点输入上界限制）；91 点版本 20k 后越过这个上界并继续上升。评测只有 32 个 mesh，单点有 ±1 dB 抖动（如 91 点在 30k 的下凹）。</figcaption></figure></div>
-<div class="tablewrap"><table><tr><th>模型</th><th class=n>val 32 面积</th><th class=n>面</th><th class=n>资产中位数</th><th class=n>64 mesh 终评面积</th></tr><tr><td>const（每面平均色）</td><td class=n>24.10</td><td class=n>25.92</td><td class=n>29.58</td><td class=n>25.78</td></tr><tr><td>注意力 latent 50k</td><td class=n neg>23.22</td><td class=n>24.27</td><td class=n>28.06</td><td class=n>—</td></tr><tr><td>注意力 latent 200k + 退火</td><td class=n>25.89</td><td class=n>27.04</td><td class=n>31.12</td><td class=n>—</td></tr><tr><td>表 latent 28 点 + 退火</td><td class=n>28.83</td><td class=n>28.15</td><td class=n>35.95</td><td class=n>—</td></tr><tr><td><strong>表 latent 91 点 + 退火</strong></td><td class=n pos>32.43</td><td class=n pos>29.20</td><td class=n pos>37.01</td><td class=n pos>32.65</td></tr></table></div>
+<div class="tablewrap"><table><tr><th>模型</th><th class=n>val 32 面积</th><th class=n>面</th><th class=n>资产中位数</th><th class=n>64 mesh 终评面积</th></tr><tr><td>const（每面平均色）</td><td class=n>24.10</td><td class=n>25.92</td><td class=n>29.58</td><td class=n>25.78</td></tr><tr><td>注意力 latent（格点 IO）50k</td><td class=n neg>23.22</td><td class=n>24.27</td><td class=n>28.06</td><td class=n>—</td></tr><tr><td>注意力 latent（旧 IO）200k</td><td class=n>24.21</td><td class=n>25.68</td><td class=n>29.17</td><td class=n>25.26</td></tr><tr><td>注意力 latent（旧 IO）200k + 退火</td><td class=n>24.73</td><td class=n>26.25</td><td class=n>29.92</td><td class=n>25.89</td></tr><tr><td>表 latent 28 点 50k</td><td class=n>28.08</td><td class=n>27.83</td><td class=n>35.07</td><td class=n>29.43</td></tr><tr><td>表 latent 28 点 + 退火</td><td class=n>28.83</td><td class=n>28.15</td><td class=n>35.95</td><td class=n>30.23</td></tr><tr><td>表 latent 91 点 50k</td><td class=n>31.45</td><td class=n>28.88</td><td class=n>36.19</td><td class=n>31.80</td></tr><tr><td><strong>表 latent 91 点 + 退火</strong></td><td class=n pos>32.43</td><td class=n pos>29.20</td><td class=n pos>37.01</td><td class=n pos>32.65</td></tr></table></div>
+<p class="small">两套评测：训练中评测用 val 的前 32 个 mesh（const 24.10，28 点 interp 上界 29.08）；训练结束后另评 64 个 mesh（const 25.78，28 点上界 31.41，91 点上界 44.05）。64 mesh 那组含更多大 mesh，所有模型的数字都偏高约 1 dB，比较时不要混用两组。</p>
 <h3>2.2 按面数分档</h3>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="按 mesh 面数分档，每档 24 个 held-out mesh：全部面 area-PSNR (dB)" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">按 mesh 面数分档，每档 24 个 held-out mesh：全部面 area-PSNR (dB)</text>
