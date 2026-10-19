@@ -576,7 +576,8 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
     const wireBox = el.querySelector('.wire'); wireBox.addEventListener('change', () => { wires.forEach(w => { w.visible = wireBox.checked; }); needs = true; });
     let mesh = null, single = false, which = 0, visible = true, needs = true;
     new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
-      g.scene.traverse(o => { if (o.isMesh) { if (!mesh) mesh = o; o.material = unlit[0]; const w = new THREE.Mesh(o.geometry, wireMat); w.visible = wireBox.checked; wires.push(w); o.add(w); } });
+      const ms = []; g.scene.traverse(o => { if (o.isMesh) ms.push(o); });   // collect first: adding children inside traverse() recurses into them
+      ms.forEach(o => { if (!mesh) mesh = o; o.material = unlit[0]; const w = new THREE.Mesh(o.geometry, wireMat); w.visible = wireBox.checked; wires.push(w); o.add(w); });
       scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
     }, undefined, () => { msg.textContent = '模型加载失败，显示缩略图'; });
     function size() {
