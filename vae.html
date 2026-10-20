@@ -66,7 +66,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续：证据链</a><a href="dit.html">DiT 生成模型 →</a></p>
+<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续：证据链</a><a href="dit.html">DiT 生成模型 →</a><a href="oldmodel.html">旧模型探索 →</a></p>
 <p class="eyebrow">TriTex · per-triangle texture VAE · 2026-10-19</p>
 <h1>纹理 VAE：从注意力 latent 到表 latent</h1>
 <p class="sub">把 latent 从"8192 个靠注意力读写的向量"改成"按锚点、槽位、角点组织、按下标读写的表"，再把编码器输入从每面 28 点加到 91 点。完整 Objaverse（≤ 20 万面）上，held-out 面积 PSNR 从旧模型最好的 24.73 dB 升到 32.43 dB（val 前 32 个 mesh）；64 个 mesh 的终评从 25.89 升到 32.65 dB。</p>

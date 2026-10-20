@@ -1,0 +1,427 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旧模型采样密度探索</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: a single reading column (72ch) with full-bleed-ish figure rows; quiet lab-notebook treatment, blue/orange series colours */
+:root{--bg:#f7f7f4;--surface:#fcfcfb;--fg:#15171a;--fg2:#5b5f66;--grid:#e3e4e0;--line:#d6d8d3;--accent:#1c5cab;--accent-soft:#e6eef9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--good:#0ca30c;--bad:#d03b3b;
+  --font-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Noto Sans SC",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.65;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-inline:20px}
+header h1{font-size:30px;line-height:1.2;margin:0 0 6px;text-wrap:balance;font-weight:700}
+header .sub{color:var(--fg2);margin:0 0 4px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);margin:0 0 8px}
+h2{font-size:21px;margin:48px 0 12px;padding-top:20px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:16px;margin:22px 0 8px}
+p,li{max-width:72ch} ul{padding-left:1.2em}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0 8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.tile .l{font-size:12.5px;color:var(--fg2)} .tile .v{font-size:26px;font-weight:600;line-height:1.15;margin-top:2px} .tile .d{font-size:12.5px;color:var(--fg2);margin-top:4px}
+.v.bad{color:var(--bad)} .v.good{color:var(--good)}
+.figrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+figure.wide{grid-column:1/-1}
+figcaption{font-size:13px;color:var(--fg2);margin-top:8px;max-width:none}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--fg2);margin:4px 0 0} .legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--k)}
+.legend .dash::before{height:0;border-top:2px dashed var(--fg2);background:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-size:13.5px;min-width:520px;background:var(--surface)} th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--fg2);font-size:12.5px;background:var(--bg)} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono);font-size:12.5px}
+td.pos{color:var(--good);font-weight:600} td.neg{color:var(--bad);font-weight:600}
+code,.mono{font-family:var(--font-mono);font-size:.9em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:0 0 6px} .callout p:last-child{margin:0}
+img{max-width:100%;height:auto;border-radius:4px;display:block}
+.status{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-left:6px}
+
+.case{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;margin:16px 0;min-width:0}
+.casehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px} .meta{color:var(--fg2);font-size:13px} .meta .pos{color:var(--good);font-weight:600} .meta .neg{color:var(--bad);font-weight:600}
+.canvaswrap{position:relative;width:100%;aspect-ratio:3/1.15;background:var(--bg);border-radius:6px;overflow:hidden;max-width:100%}
+.canvaswrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.canvaswrap .poster{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:100%;width:auto;object-fit:contain;opacity:.9}
+.canvaswrap .loadmsg{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--fg2);background:var(--surface);padding:2px 8px;border-radius:999px}
+.vlabels{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;font-size:12.5px;color:var(--fg2);margin-top:6px}
+.ctrl{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--fg2);margin-top:8px} .ctrl label{display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+.ctrl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer} .ctrl button:focus-visible,.ctrl input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p.small{font-size:13px;color:var(--fg2)}
+.texpanel{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.texlbl{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;color:var(--fg2);margin-bottom:8px}
+.texlbl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer}
+.texpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:640px}
+.texpair.big{max-width:none}
+.texpair figure{margin:0;padding:0;border:0;background:none;min-width:0}
+.texpair img{width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#8a8a86;border:1px solid var(--line);border-radius:4px;display:block}
+.texpair figcaption{font-size:12px;color:var(--fg2);margin-top:4px;text-align:center}
+
+@media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
+footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+</style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
+<style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
+.texpair.three{grid-template-columns:repeat(3,minmax(0,1fr));max-width:none} .texpair.three figcaption{font-size:12px} .case .canvaswrap{aspect-ratio:3/1.25}
+@media (max-width:700px){.case .canvaswrap{aspect-ratio:3/2}}
+.stack{display:grid;grid-template-columns:1fr;gap:18px;margin:14px 0} .stack figure{width:100%} .stack figure img{width:100%;height:auto;display:block}
+details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px} details.more summary{cursor:pointer;font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
+</head><body><div class="wrap">
+<header>
+<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续</a><a href="vae.html">纹理 VAE 汇报</a><a href="dit.html">纹理 DiT 汇报</a></p>
+<p class="eyebrow">TriTex · attention-latent VAE · 2026-10-19 至 10-20</p>
+<h1>旧模型探索：采样点、监督点与大面切分</h1>
+<p class="sub">问题：注意力 latent 的旧模型，是不是被每面 28 个采样点、每步只监督 8 个点限制住了？做法：在 ≤ 8192 面子集上以同一配方各训 10k 步，分别加大输入采样点、监督点，以及把大面递归切小；再把练到 200k 的模型放到切分后的 mesh 上推理。</p>
+</header>
+<div class="tiles">
+<div class="tile"><div class="l">监督点 8 → 91（每步）</div><div class="v">+0.4 dB</div><div class="d">10k 步，在评测抖动边缘</div></div>
+<div class="tile"><div class="l">采样点 28 → 91 / 105</div><div class="v">−0.5 / −1.0 dB</div><div class="d">上界抬到 36 dB 以上，模型没有跟上</div></div>
+<div class="tile"><div class="l">大面切分，200k + 退火推理</div><div class="v good">+2.76 dB</div><div class="d">26.13 → 28.89，超过 const 的位移 2.17</div></div>
+<div class="tile"><div class="l">10 个展示案例 3D 渲染</div><div class="v good">8 / 10</div><div class="d">大面切分优于原始 mesh</div></div>
+</div>
+<div class="callout"><p><strong>结论：</strong>在 10k 步内，加采样点、加监督点都没有让旧模型越过 const；大面切分带来的提升与 const 自身的位移相当。练够的 200k + 退火模型在小 mesh 上离 28 点插值上界只差 1 dB，推理时切分能再拿到超出 const 位移的真实增益。10k 步的实验只能说明早期学习不受点数限制，练够之后点数是否成为上限，需要在 200k 权重上微调 91 点输入才能回答。</p></div>
+
+<h2>1. 实验设计</h2>
+<div class="tablewrap"><table><tr><th>实验</th><th>输入采样 / 面</th><th>每步进损失的输出点</th><th>输出 / 面</th><th>数据</th><th>步数</th></tr><tr><td>28 点采样 + 随机 8 点步损失 + 91 点输出（旧对照）</td><td>28</td><td>随机 8</td><td>91</td><td>原始</td><td>10k</td></tr><tr><td>28 点采样 + 91 点步损失 + 91 点输出</td><td>28</td><td>91</td><td>91</td><td>原始</td><td>10k</td></tr><tr><td>91 点采样 + 91 点步损失 + 91 点输出</td><td>91</td><td>91</td><td>91</td><td>原始</td><td>10k</td></tr><tr><td>105 点采样 + 378 点步损失 + 378 点输出</td><td>105</td><td>378</td><td>378（阶 26 格点缓存）</td><td>原始</td><td>10k</td></tr><tr><td>28 点采样 + 91 点步损失 + 91 点输出 + 大面切分重训</td><td>28</td><td>91</td><td>91</td><td>切分缓存（面数 ×2.7）</td><td>10k</td></tr><tr><td>200k / 200k + 退火（完整数据旧配方）</td><td>28</td><td>随机 8</td><td>91</td><td>完整数据，推理时切分</td><td>200k / 210k</td></tr></table></div>
+<p class="small">模型全部为旧配方：8192 个表面 FPS 锚点、64 维 latent、编码与解码均为交叉注意力、格点面编解码器。大面切分：面积超过总表面积 1/2048 的面按三边中点一分为四，递归到全部低于阈值；子面的纹理仍从父面 UV 采样。≤ 8192 面子集上面数中位数变为 2.7 倍，完整数据的 32 个验证 mesh 只增加 0.5% 的面。</p>
+
+<h2>2. 定量结果</h2>
+<h3>2.1 训练曲线</h3>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 680 320" width="100%" role="img" aria-label="≤ 8192 面子集，val 前 32 个：area-PSNR (dB)，训练中评测" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">≤ 8192 面子集，val 前 32 个：area-PSNR (dB)，训练中评测</text>
+<line x1="44" x2="666" y1="258.3" y2="258.3" stroke="var(--grid)"/>
+<text x="38" y="261.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">17.5</text>
+<line x1="44" x2="666" y1="208.2" y2="208.2" stroke="var(--grid)"/>
+<text x="38" y="211.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="666" y1="158.0" y2="158.0" stroke="var(--grid)"/>
+<text x="38" y="161.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22.5</text>
+<line x1="44" x2="666" y1="107.8" y2="107.8" stroke="var(--grid)"/>
+<text x="38" y="111.3" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="666" y1="57.7" y2="57.7" stroke="var(--grid)"/>
+<text x="38" y="61.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">27.5</text>
+<text x="44.0" y="302" text-anchor="middle" fill="var(--fg2)">2.5k</text>
+<text x="251.3" y="302" text-anchor="middle" fill="var(--fg2)">5k</text>
+<text x="458.7" y="302" text-anchor="middle" fill="var(--fg2)">7.5k</text>
+<text x="666.0" y="302" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="355" y="316" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,158) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<line x1="44" x2="666" y1="135.5" y2="135.5" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="666" y="131.5" text-anchor="end" fill="var(--fg2)">const 23.62 23.62</text>
+<line x1="44" x2="666" y1="68.5" y2="68.5" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="666" y="64.5" text-anchor="end" fill="var(--fg2)">28 点 interp 上界 26.96 26.96</text>
+<polyline points="44.0,221.5 251.3,195.6 458.7,180.0 666.0,152.6" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="221.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 随机 8 点步损失 · 2.5k · 19.34 dB</title></circle>
+<circle cx="251.3" cy="195.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 随机 8 点步损失 · 5k · 20.62 dB</title></circle>
+<circle cx="458.7" cy="180.0" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 随机 8 点步损失 · 7.5k · 21.40 dB</title></circle>
+<circle cx="666.0" cy="152.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 随机 8 点步损失 · 10k · 22.77 dB</title></circle>
+<text x="660.0" y="144.6" text-anchor="end" fill="var(--s2)" font-weight="600">28 点采样 + 随机 8 点步损失 22.77</text>
+<polyline points="44.0,205.5 251.3,192.0 458.7,188.4 666.0,155.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="205.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 91 点步损失 · 2.5k · 20.13 dB</title></circle>
+<circle cx="251.3" cy="192.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 91 点步损失 · 5k · 20.80 dB</title></circle>
+<circle cx="458.7" cy="188.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 91 点步损失 · 7.5k · 20.98 dB</title></circle>
+<circle cx="666.0" cy="155.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>28 点采样 + 91 点步损失 · 10k · 22.60 dB</title></circle>
+<text x="660.0" y="147.9" text-anchor="end" fill="var(--s1)" font-weight="600">28 点采样 + 91 点步损失 22.60</text>
+<polyline points="44.0,244.3 251.3,191.0 458.7,172.5 666.0,161.3" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="244.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>91 点采样 + 91 点步损失 · 2.5k · 18.20 dB</title></circle>
+<circle cx="251.3" cy="191.0" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>91 点采样 + 91 点步损失 · 5k · 20.86 dB</title></circle>
+<circle cx="458.7" cy="172.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>91 点采样 + 91 点步损失 · 7.5k · 21.78 dB</title></circle>
+<circle cx="666.0" cy="161.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>91 点采样 + 91 点步损失 · 10k · 22.34 dB</title></circle>
+<text x="660.0" y="153.3" text-anchor="end" fill="var(--s3)" font-weight="600">91 点采样 + 91 点步损失 22.34</text>
+<polyline points="44.0,204.3 251.3,183.0 458.7,182.9 666.0,176.8" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="204.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>105 点采样 + 378 点步损失 · 2.5k · 20.19 dB</title></circle>
+<circle cx="251.3" cy="183.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>105 点采样 + 378 点步损失 · 5k · 21.25 dB</title></circle>
+<circle cx="458.7" cy="182.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>105 点采样 + 378 点步损失 · 7.5k · 21.26 dB</title></circle>
+<circle cx="666.0" cy="176.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>105 点采样 + 378 点步损失 · 10k · 21.56 dB</title></circle>
+<text x="660.0" y="168.8" text-anchor="end" fill="var(--s4)" font-weight="600">105 点采样 + 378 点步损失 21.56</text>
+<polyline points="44.0,153.2 251.3,121.8 458.7,103.6 666.0,97.9" fill="none" stroke="var(--fg2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="153.2" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点 + 91 点 + 大面切分重训 · 2.5k · 22.74 dB</title></circle>
+<circle cx="251.3" cy="121.8" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点 + 91 点 + 大面切分重训 · 5k · 24.30 dB</title></circle>
+<circle cx="458.7" cy="103.6" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点 + 91 点 + 大面切分重训 · 7.5k · 25.21 dB</title></circle>
+<circle cx="666.0" cy="97.9" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>28 点 + 91 点 + 大面切分重训 · 10k · 25.50 dB</title></circle>
+<text x="660.0" y="89.9" text-anchor="end" fill="var(--fg2)" font-weight="600">28 点 + 91 点 + 大面切分重训 25.50</text>
+</svg><div class="legend"><span style="--c:var(--s2)">随机 8 点步损失</span><span style="--c:var(--s1)">91 点步损失</span><span style="--c:var(--s3)">91 点采样</span><span style="--c:var(--s4)">105 / 378 点</span><span style="--c:var(--fg2)">大面切分重训</span><span class="dash">const / interp</span></div>
+<figcaption>五条曲线为训练中记录的 val 前 32 个 mesh。大面切分重训那条在切分后的 mesh 上评测，它的 const 是 25.79 而不是图中的 23.62，所以不能直接和另外四条比高低。</figcaption></figure></div>
+<h3>2.2 同一组 mesh 上的重新评测</h3>
+<p>用每个运行的最终权重，在同一组 32 个 ≤ 8192 面的验证 mesh 上重新评测，分别在原始 mesh 和大面切分后的 mesh 上各评一次。两列评的是同一张纹理表面，面积 PSNR 可直接比较，但各自的参照不同。</p>
+<div class="tablewrap"><table><tr><th>模型</th><th class=n>步数</th><th class=n>原始 mesh</th><th class=n>相对 const 23.62</th><th class=n>大面切分</th><th class=n>相对 const 25.79</th></tr><tr><td>28 点采样 + 随机 8 点步损失 + 91 点输出（旧对照）</td><td class=n>10k</td><td class=n>22.91</td><td class=n neg>−0.7</td><td class=n>24.33</td><td class=n neg>−1.5</td></tr><tr><td>28 点采样 + 91 点步损失 + 91 点输出</td><td class=n>10k</td><td class=n>23.33</td><td class=n neg>−0.3</td><td class=n>24.74</td><td class=n neg>−1.1</td></tr><tr><td>91 点采样 + 91 点步损失 + 91 点输出</td><td class=n>10k</td><td class=n>22.82</td><td class=n neg>−0.8</td><td class=n>24.12</td><td class=n neg>−1.7</td></tr><tr><td>105 点采样 + 378 点步损失 + 378 点输出 *</td><td class=n>10k</td><td class=n>22.35</td><td class=n neg>−1.4</td><td class=n>23.42</td><td class=n neg>−2.5</td></tr><tr><td>28 点采样 + 91 点步损失 + 91 点输出 + 大面切分重训</td><td class=n>10k</td><td class=n>23.01</td><td class=n neg>−0.6</td><td class=n>25.52</td><td class=n neg>−0.3</td></tr><tr><td>200k（28 点采样 + 随机 8 点步损失 + 91 点输出）</td><td class=n>200k</td><td class=n>25.47</td><td class=n pos>+1.9</td><td class=n>28.08</td><td class=n pos>+2.3</td></tr><tr><td><strong>200k + 退火</strong>（同上）</td><td class=n>210k</td><td class=n pos>26.13</td><td class=n pos>+2.5</td><td class=n pos>28.89</td><td class=n pos>+3.1</td></tr></table></div>
+<p class="small">28 点插值上界：原始 27.18，切分 31.29；91 点采样的上界 35.78 / 39.49。* 105 / 378 点那行在每面 378 个点上评测，其参照为 const 23.73 / 25.95，上界 28.15 / 34.74。200k 两行的"大面切分"列为推理时切分，不重训。</p>
+<h3>2.3 完整数据验证集上的大面切分（推理时，不重训）</h3>
+<div class="tablewrap"><table><tr><th>模型</th><th class=n>原始 mesh</th><th class=n>大面切分</th><th class=n>增益</th></tr><tr><td>const 参照</td><td class=n>24.10</td><td class=n>24.92</td><td class=n>+0.82</td></tr><tr><td>28 点 interp 上界</td><td class=n>29.20</td><td class=n>30.48</td><td class=n>+1.28</td></tr><tr><td>200k + 退火</td><td class=n>24.71</td><td class=n>25.35</td><td class=n>+0.64</td></tr></table></div>
+<p class="small">完整数据的 val 前 32 个 mesh（含最多 13 万面的 mesh）。切分只增加 0.5% 的面，但 const 仍涨 0.8 dB，说明面积 PSNR 被少数巨大的面主导。这里模型的增益小于 const 的位移，和小子集上 200k 模型的表现（+2.76 对 +2.17）相反，差别来自大 mesh 上巨大面所占的比例。</p>
+
+<h2>3. 定性结果：200k + 退火模型，原始 mesh 与大面切分</h2>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 980 300" width="100%" role="img" aria-label="10 个展示案例：4 视角渲染图前景像素 PSNR (dB)，200k + 退火" style="max-width:980px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">10 个展示案例：4 视角渲染图前景像素 PSNR (dB)，200k + 退火</text>
+<line x1="44" x2="966" y1="260.0" y2="260.0" stroke="var(--grid)"/>
+<text x="38" y="263.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">15</text>
+<line x1="44" x2="966" y1="205.2" y2="205.2" stroke="var(--grid)"/>
+<text x="38" y="208.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="966" y1="150.5" y2="150.5" stroke="var(--grid)"/>
+<text x="38" y="154.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="966" y1="95.7" y2="95.7" stroke="var(--grid)"/>
+<text x="38" y="99.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<line x1="44" x2="966" y1="41.0" y2="41.0" stroke="var(--grid)"/>
+<text x="38" y="44.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">35</text>
+<text transform="translate(11,145) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<text x="90.1" y="276" text-anchor="middle" fill="var(--fg)">Spider-Man</text>
+<path d="M65.1,260.0 v-134.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v134.6 z" fill="var(--s2)"><title>Spider-Man · 原始 mesh · 27.66</title></path>
+<text x="77.1" y="116.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.7</text>
+<path d="M91.1,260.0 v-135.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v135.4 z" fill="var(--s1)"><title>Spider-Man · 大面切分 · 27.73</title></path>
+<text x="103.1" y="115.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.7</text>
+<text x="182.3" y="276" text-anchor="middle" fill="var(--fg)">Soldier</text>
+<path d="M157.3,260.0 v-149.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v149.0 z" fill="var(--s2)"><title>Soldier · 原始 mesh · 28.97</title></path>
+<text x="169.3" y="102.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">29.0</text>
+<path d="M183.3,260.0 v-150.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v150.3 z" fill="var(--s1)"><title>Soldier · 大面切分 · 29.09</title></path>
+<text x="195.3" y="100.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">29.1</text>
+<text x="274.5" y="276" text-anchor="middle" fill="var(--fg)">救护车</text>
+<path d="M249.5,260.0 v-131.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v131.0 z" fill="var(--s2)"><title>救护车 · 原始 mesh · 27.33</title></path>
+<text x="261.5" y="120.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">27.3</text>
+<path d="M275.5,260.0 v-145.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v145.0 z" fill="var(--s1)"><title>救护车 · 大面切分 · 28.61</title></path>
+<text x="287.5" y="106.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">28.6</text>
+<text x="366.7" y="276" text-anchor="middle" fill="var(--fg)">Enternity Demon</text>
+<path d="M341.7,260.0 v-165.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v165.8 z" fill="var(--s2)"><title>Enternity Demon · 原始 mesh · 30.51</title></path>
+<text x="353.7" y="85.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">30.5</text>
+<path d="M367.7,260.0 v-165.9 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v165.9 z" fill="var(--s1)"><title>Enternity Demon · 大面切分 · 30.52</title></path>
+<text x="379.7" y="85.1" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">30.5</text>
+<text x="458.9" y="276" text-anchor="middle" fill="var(--fg)">Hello Neighbor</text>
+<path d="M433.9,260.0 v-120.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v120.7 z" fill="var(--s2)"><title>Hello Neighbor · 原始 mesh · 26.38</title></path>
+<text x="445.9" y="130.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.4</text>
+<path d="M459.9,260.0 v-119.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v119.8 z" fill="var(--s1)"><title>Hello Neighbor · 大面切分 · 26.30</title></path>
+<text x="471.9" y="131.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.3</text>
+<text x="551.1" y="276" text-anchor="middle" fill="var(--fg)">舞蹈面具</text>
+<path d="M526.1,260.0 v-119.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v119.7 z" fill="var(--s2)"><title>舞蹈面具 · 原始 mesh · 26.29</title></path>
+<text x="538.1" y="131.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.3</text>
+<path d="M552.1,260.0 v-121.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v121.8 z" fill="var(--s1)"><title>舞蹈面具 · 大面切分 · 26.48</title></path>
+<text x="564.1" y="129.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">26.5</text>
+<text x="643.3" y="276" text-anchor="middle" fill="var(--fg)">Rippersnapper</text>
+<path d="M618.3,260.0 v-61.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v61.0 z" fill="var(--s2)"><title>Rippersnapper · 原始 mesh · 20.94</title></path>
+<text x="630.3" y="190.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">20.9</text>
+<path d="M644.3,260.0 v-73.7 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v73.7 z" fill="var(--s1)"><title>Rippersnapper · 大面切分 · 22.09</title></path>
+<text x="656.3" y="177.3" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">22.1</text>
+<text x="735.5" y="276" text-anchor="middle" fill="var(--fg)">Shadowsun</text>
+<path d="M710.5,260.0 v-83.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v83.2 z" fill="var(--s2)"><title>Shadowsun · 原始 mesh · 22.96</title></path>
+<text x="722.5" y="167.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">23.0</text>
+<path d="M736.5,260.0 v-92.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v92.3 z" fill="var(--s1)"><title>Shadowsun · 大面切分 · 23.79</title></path>
+<text x="748.5" y="158.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">23.8</text>
+<text x="827.7" y="276" text-anchor="middle" fill="var(--fg)">Dog</text>
+<path d="M802.7,260.0 v-160.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v160.2 z" fill="var(--s2)"><title>Dog · 原始 mesh · 29.99</title></path>
+<text x="814.7" y="90.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">30.0</text>
+<path d="M828.7,260.0 v-159.5 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v159.5 z" fill="var(--s1)"><title>Dog · 大面切分 · 29.92</title></path>
+<text x="840.7" y="91.5" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">29.9</text>
+<text x="919.9" y="276" text-anchor="middle" fill="var(--fg)">Bee</text>
+<path d="M894.9,260.0 v-88.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v88.3 z" fill="var(--s2)"><title>Bee · 原始 mesh · 23.43</title></path>
+<text x="906.9" y="162.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">23.4</text>
+<path d="M920.9,260.0 v-97.3 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v97.3 z" fill="var(--s1)"><title>Bee · 大面切分 · 24.25</title></path>
+<text x="932.9" y="153.7" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.3</text>
+</svg><div class="legend"><span style="--c:var(--s2)">原始 mesh</span><span style="--c:var(--s1)">大面切分</span></div><figcaption>每个案例渲染 4 个视角（3 个侧视 + 俯视），像素颜色由模型的面解码器在像素的重心坐标处直接求值，统计前景像素。</figcaption></figure></div>
+<h3>3.1 交互式 3D 对比</h3>
+<p>三个视口共享相机：真值 / 200k + 退火在原始 mesh 上 / 同一模型在大面切分后的 mesh 上。"显示网格"可叠加三角形边线，切分后的视口会显示切小后的面。下方为烘焙到 GT UV 布局的贴图，UV 岛以外为灰色。</p>
+
+<div class="case" data-uid="522f50cae5cc4a6c9a7fbd5b4e36bbbf">
+<div class="casehead"><div><strong>Spider-Man</strong> <span class="mono">522f50cae5cc4a6c9a7fbd5b4e36bbbf</span> <span class="meta">99,208 面，切分后 99,208 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>27.66</strong> · 大面切分 <strong>27.73</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/thumb.jpg" alt="522f50cae5cc4a6c9a7fbd5b4e36bbbf 缩略图" width="480" height="480"><canvas aria-label="522f50cae5cc4a6c9a7fbd5b4e36bbbf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-522f50ca" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-522f50ca"> 单视图</label><label><input type="checkbox" class="wire" id="wire-522f50ca"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-522f50ca" value="0" checked> GT</label><label><input type="radio" name="m-522f50ca" value="1"> 原始</label><label><input type="radio" name="m-522f50ca" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="6746867266f04bf5aed3b4f0a6df278c">
+<div class="casehead"><div><strong>Soldier</strong> <span class="mono">6746867266f04bf5aed3b4f0a6df278c</span> <span class="meta">31,263 面，切分后 31,506 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>28.97</strong> · 大面切分 <strong>29.09</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/6746867266f04bf5aed3b4f0a6df278c/thumb.jpg" alt="6746867266f04bf5aed3b4f0a6df278c 缩略图" width="480" height="480"><canvas aria-label="6746867266f04bf5aed3b4f0a6df278c 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-67468672" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-67468672"> 单视图</label><label><input type="checkbox" class="wire" id="wire-67468672"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-67468672" value="0" checked> GT</label><label><input type="radio" name="m-67468672" value="1"> 原始</label><label><input type="radio" name="m-67468672" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa">
+<div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">48,270 面，切分后 50,118 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>27.33</strong> · 大面切分 <strong>28.61</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480"><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-994aec41" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-994aec41"> 单视图</label><label><input type="checkbox" class="wire" id="wire-994aec41"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-994aec41" value="0" checked> GT</label><label><input type="radio" name="m-994aec41" value="1"> 原始</label><label><input type="radio" name="m-994aec41" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="ecbab41a56c24b7fa88203f415b56d5a">
+<div class="casehead"><div><strong>Enternity Demon</strong> <span class="mono">ecbab41a56c24b7fa88203f415b56d5a</span> <span class="meta">50,026 面，切分后 50,296 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>30.51</strong> · 大面切分 <strong>30.52</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/ecbab41a56c24b7fa88203f415b56d5a/thumb.jpg" alt="ecbab41a56c24b7fa88203f415b56d5a 缩略图" width="480" height="480"><canvas aria-label="ecbab41a56c24b7fa88203f415b56d5a 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-ecbab41a" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-ecbab41a"> 单视图</label><label><input type="checkbox" class="wire" id="wire-ecbab41a"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-ecbab41a" value="0" checked> GT</label><label><input type="radio" name="m-ecbab41a" value="1"> 原始</label><label><input type="radio" name="m-ecbab41a" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="53bf4971eccb4d5dbe20db083919c44d">
+<div class="casehead"><div><strong>Hello Neighbor</strong> <span class="mono">53bf4971eccb4d5dbe20db083919c44d</span> <span class="meta">23,610 面，切分后 23,610 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>26.38</strong> · 大面切分 <strong>26.30</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/53bf4971eccb4d5dbe20db083919c44d/thumb.jpg" alt="53bf4971eccb4d5dbe20db083919c44d 缩略图" width="480" height="480"><canvas aria-label="53bf4971eccb4d5dbe20db083919c44d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-53bf4971" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-53bf4971"> 单视图</label><label><input type="checkbox" class="wire" id="wire-53bf4971"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-53bf4971" value="0" checked> GT</label><label><input type="radio" name="m-53bf4971" value="1"> 原始</label><label><input type="radio" name="m-53bf4971" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="e610ab728a124989882c209d764f046d">
+<div class="casehead"><div><strong>舞蹈面具</strong> <span class="mono">e610ab728a124989882c209d764f046d</span> <span class="meta">8,046 面，切分后 8,334 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>26.29</strong> · 大面切分 <strong>26.48</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/e610ab728a124989882c209d764f046d/thumb.jpg" alt="e610ab728a124989882c209d764f046d 缩略图" width="480" height="480"><canvas aria-label="e610ab728a124989882c209d764f046d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-e610ab72" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-e610ab72"> 单视图</label><label><input type="checkbox" class="wire" id="wire-e610ab72"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-e610ab72" value="0" checked> GT</label><label><input type="radio" name="m-e610ab72" value="1"> 原始</label><label><input type="radio" name="m-e610ab72" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/e610ab728a124989882c209d764f046d/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/e610ab728a124989882c209d764f046d/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/e610ab728a124989882c209d764f046d/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="1aac7b79651d4bad96e49c13d3a8975e">
+<div class="casehead"><div><strong>Rippersnapper</strong> <span class="mono">1aac7b79651d4bad96e49c13d3a8975e</span> <span class="meta">5,746 面，切分后 7,666 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>20.94</strong> · 大面切分 <strong>22.09</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/1aac7b79651d4bad96e49c13d3a8975e/thumb.jpg" alt="1aac7b79651d4bad96e49c13d3a8975e 缩略图" width="480" height="480"><canvas aria-label="1aac7b79651d4bad96e49c13d3a8975e 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-1aac7b79" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-1aac7b79"> 单视图</label><label><input type="checkbox" class="wire" id="wire-1aac7b79"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-1aac7b79" value="0" checked> GT</label><label><input type="radio" name="m-1aac7b79" value="1"> 原始</label><label><input type="radio" name="m-1aac7b79" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="209865ec00284af5b34d3faa999e1baf">
+<div class="casehead"><div><strong>Shadowsun</strong> <span class="mono">209865ec00284af5b34d3faa999e1baf</span> <span class="meta">7,434 面，切分后 9,072 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>22.96</strong> · 大面切分 <strong>23.79</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/209865ec00284af5b34d3faa999e1baf/thumb.jpg" alt="209865ec00284af5b34d3faa999e1baf 缩略图" width="480" height="480"><canvas aria-label="209865ec00284af5b34d3faa999e1baf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-209865ec" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-209865ec"> 单视图</label><label><input type="checkbox" class="wire" id="wire-209865ec"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-209865ec" value="0" checked> GT</label><label><input type="radio" name="m-209865ec" value="1"> 原始</label><label><input type="radio" name="m-209865ec" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="9a77cdf9dac043039d516fc3a764e8f5">
+<div class="casehead"><div><strong>Dog</strong> <span class="mono">9a77cdf9dac043039d516fc3a764e8f5</span> <span class="meta">33,384 面，切分后 33,396 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>29.99</strong> · 大面切分 <strong>29.92</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/9a77cdf9dac043039d516fc3a764e8f5/thumb.jpg" alt="9a77cdf9dac043039d516fc3a764e8f5 缩略图" width="480" height="480"><canvas aria-label="9a77cdf9dac043039d516fc3a764e8f5 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-9a77cdf9" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-9a77cdf9"> 单视图</label><label><input type="checkbox" class="wire" id="wire-9a77cdf9"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-9a77cdf9" value="0" checked> GT</label><label><input type="radio" name="m-9a77cdf9" value="1"> 原始</label><label><input type="radio" name="m-9a77cdf9" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="60ef2e59ee2a492a9677c75b745cb9a1">
+<div class="casehead"><div><strong>Bee</strong> <span class="mono">60ef2e59ee2a492a9677c75b745cb9a1</span> <span class="meta">51,731 面，切分后 52,595 面 · held-out</span></div>
+<div class="meta">4 视角渲染 PSNR：原始 <strong>23.43</strong> · 大面切分 <strong>24.25</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/60ef2e59ee2a492a9677c75b745cb9a1/thumb.jpg" alt="60ef2e59ee2a492a9677c75b745cb9a1 缩略图" width="480" height="480"><canvas aria-label="60ef2e59ee2a492a9677c75b745cb9a1 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT 原始贴图</span><span>注意力 latent 200k + 退火，原始 mesh</span><span>同一模型，大面切分</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-60ef2e59" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-60ef2e59"> 单视图</label><label><input type="checkbox" class="wire" id="wire-60ef2e59"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-60ef2e59" value="0" checked> GT</label><label><input type="radio" name="m-60ef2e59" value="1"> 原始</label><label><input type="radio" name="m-60ef2e59" value="2"> 大面切分</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / 原始 mesh / 大面切分</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair three"><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_old200k_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_old200k_disp.jpg" alt="原始 mesh 重建" loading="lazy"></a><figcaption>原始 mesh</figcaption></figure>
+<figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_attn_split_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_attn_split_disp.jpg" alt="大面切分重建" loading="lazy"></a><figcaption>大面切分</figcaption></figure></div></div>
+</div>
+<h3>3.2 多视角渲染对比</h3>
+<p class="small">四行为四个视角，三列为真值 / 原始 mesh / 大面切分，列标题标注该列在此案例前景像素上的 PSNR。</p>
+<div class="stack"><figure class="imgfig"><img src="oldmodel/3d_522f50ca.jpg" alt="Spider-Man 多视角渲染" loading="lazy"><figcaption><strong>Spider-Man</strong> · 99,208 面 · 渲染 PSNR 原始 27.66 / 大面切分 27.73 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_67468672.jpg" alt="Soldier 多视角渲染" loading="lazy"><figcaption><strong>Soldier</strong> · 31,263 面 · 渲染 PSNR 原始 28.97 / 大面切分 29.09 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_994aec41.jpg" alt="救护车 多视角渲染" loading="lazy"><figcaption><strong>救护车</strong> · 48,270 面 · 渲染 PSNR 原始 27.33 / 大面切分 28.61 dB</figcaption></figure></div><details class="more"><summary>展开其余 7 个案例（列为真值 / 原始 mesh / 大面切分）</summary><div class="stack"><figure class="imgfig"><img src="oldmodel/3d_ecbab41a.jpg" alt="Enternity Demon 多视角渲染" loading="lazy"><figcaption><strong>Enternity Demon</strong> · 50,026 面 · 渲染 PSNR 原始 30.51 / 大面切分 30.52 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_53bf4971.jpg" alt="Hello Neighbor 多视角渲染" loading="lazy"><figcaption><strong>Hello Neighbor</strong> · 23,610 面 · 渲染 PSNR 原始 26.38 / 大面切分 26.30 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_e610ab72.jpg" alt="舞蹈面具 多视角渲染" loading="lazy"><figcaption><strong>舞蹈面具</strong> · 8,046 面 · 渲染 PSNR 原始 26.29 / 大面切分 26.48 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_1aac7b79.jpg" alt="Rippersnapper 多视角渲染" loading="lazy"><figcaption><strong>Rippersnapper</strong> · 5,746 面 · 渲染 PSNR 原始 20.94 / 大面切分 22.09 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_209865ec.jpg" alt="Shadowsun 多视角渲染" loading="lazy"><figcaption><strong>Shadowsun</strong> · 7,434 面 · 渲染 PSNR 原始 22.96 / 大面切分 23.79 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_9a77cdf9.jpg" alt="Dog 多视角渲染" loading="lazy"><figcaption><strong>Dog</strong> · 33,384 面 · 渲染 PSNR 原始 29.99 / 大面切分 29.92 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/3d_60ef2e59.jpg" alt="Bee 多视角渲染" loading="lazy"><figcaption><strong>Bee</strong> · 51,731 面 · 渲染 PSNR 原始 23.43 / 大面切分 24.25 dB</figcaption></figure></div></details>
+<h3>3.3 高频细节对比</h3>
+<p>每个案例自动选取真值贴图上高频能量最大的一块区域放大，三列为真值 / 原始 mesh / 大面切分。列标题下为该区域的 PSNR 及低 / 中 / 高三个频段的分量；下表汇总"全部 / 高频段"两个数。</p>
+<div class="tablewrap"><table><tr><th>案例</th><th class=n>面数</th><th class=n>原始 mesh：全部 / 高频</th><th class=n>大面切分：全部 / 高频</th></tr><tr><td>Spider-Man</td><td class=n>99,208</td><td class=n>23.9 / 29.6</td><td class=n pos>24.2 / 29.6</td></tr><tr><td>Soldier</td><td class=n>31,263</td><td class=n>21.3 / 31.2</td><td class=n pos>21.9 / 31.1</td></tr><tr><td>救护车</td><td class=n>48,270</td><td class=n>27.0 / 31.3</td><td class=n pos>28.2 / 31.2</td></tr><tr><td>Enternity Demon</td><td class=n>50,026</td><td class=n>30.3 / 36.4</td><td class=n pos>30.6 / 36.3</td></tr><tr><td>Hello Neighbor</td><td class=n>23,610</td><td class=n>24.6 / 28.0</td><td class=n>24.5 / 28.0</td></tr><tr><td>舞蹈面具</td><td class=n>8,046</td><td class=n>25.4 / 27.2</td><td class=n pos>25.5 / 27.3</td></tr><tr><td>Rippersnapper</td><td class=n>5,746</td><td class=n>20.3 / 23.8</td><td class=n pos>21.0 / 23.9</td></tr><tr><td>Shadowsun</td><td class=n>7,434</td><td class=n>24.4 / 27.3</td><td class=n pos>24.9 / 27.5</td></tr><tr><td>Dog</td><td class=n>33,384</td><td class=n>27.9 / 29.4</td><td class=n pos>27.9 / 29.4</td></tr><tr><td>Bee</td><td class=n>51,731</td><td class=n>23.5 / 25.4</td><td class=n pos>23.7 / 25.4</td></tr></table></div>
+<div class="stack"><figure class="imgfig"><img src="oldmodel/detail_994aec41.jpg" alt="救护车 细节裁剪" loading="lazy"><figcaption><strong>救护车</strong> · 裁剪区 PSNR 原始 27.0 / 大面切分 28.2 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_e610ab72.jpg" alt="舞蹈面具 细节裁剪" loading="lazy"><figcaption><strong>舞蹈面具</strong> · 裁剪区 PSNR 原始 25.4 / 大面切分 25.5 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_9a77cdf9.jpg" alt="Dog 细节裁剪" loading="lazy"><figcaption><strong>Dog</strong> · 裁剪区 PSNR 原始 27.9 / 大面切分 27.9 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_60ef2e59.jpg" alt="Bee 细节裁剪" loading="lazy"><figcaption><strong>Bee</strong> · 裁剪区 PSNR 原始 23.5 / 大面切分 23.7 dB</figcaption></figure></div><details class="more"><summary>展开其余 6 个案例（同样的三列布局）</summary><div class="stack"><figure class="imgfig"><img src="oldmodel/detail_522f50ca.jpg" alt="Spider-Man 细节裁剪" loading="lazy"><figcaption><strong>Spider-Man</strong> · 裁剪区 PSNR 原始 23.9 / 大面切分 24.2 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_67468672.jpg" alt="Soldier 细节裁剪" loading="lazy"><figcaption><strong>Soldier</strong> · 裁剪区 PSNR 原始 21.3 / 大面切分 21.9 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_ecbab41a.jpg" alt="Enternity Demon 细节裁剪" loading="lazy"><figcaption><strong>Enternity Demon</strong> · 裁剪区 PSNR 原始 30.3 / 大面切分 30.6 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_53bf4971.jpg" alt="Hello Neighbor 细节裁剪" loading="lazy"><figcaption><strong>Hello Neighbor</strong> · 裁剪区 PSNR 原始 24.6 / 大面切分 24.5 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_1aac7b79.jpg" alt="Rippersnapper 细节裁剪" loading="lazy"><figcaption><strong>Rippersnapper</strong> · 裁剪区 PSNR 原始 20.3 / 大面切分 21.0 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_209865ec.jpg" alt="Shadowsun 细节裁剪" loading="lazy"><figcaption><strong>Shadowsun</strong> · 裁剪区 PSNR 原始 24.4 / 大面切分 24.9 dB</figcaption></figure></div></details>
+
+<h2>4. 结论与下一步</h2>
+<ul>
+<li><strong>监督密度不是瓶颈。</strong>每步监督点从随机 8 个改成全部 91 个，10k 步只高 0.4 dB。</li>
+<li><strong>输入采样密度在 10k 步内不是瓶颈。</strong>28 → 91 → 105 点，上界从 27 抬到 36 以上，模型反而略降。</li>
+<li><strong>大面切分对 10k 模型只是任务变容易</strong>：重训后相对 const 只好 0.7 dB，仍在 const 以下。对练够的 200k + 退火模型，小 mesh 上是超过 const 位移的真实增益（+2.76），完整数据上则不足 const 位移（+0.64）。</li>
+<li><strong>待回答</strong>：200k + 退火在小 mesh 上离 28 点上界只差 1 dB，输入点数此时是否已成上限。干净的测法是在 200k 权重上只换 91 点输入的面编码器微调 10k 步。</li>
+</ul>
+<footer>生成脚本 build_oldmodel_page.py；可视化 scripts/old_model_cases_vis.py（tritex/split_infer.py）；数据：Objaverse 1.0 held-out。</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  if (!window.THREE) return;
+  const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  if (!canWebGL) return;
+  const NAMES = ['gt_dil', 'recon_old200k', 'recon_attn_split'];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function initCase(el) {
+    const uid = el.dataset.uid, canvas = el.querySelector('canvas'), poster = el.querySelector('.poster'), msg = el.querySelector('.loadmsg');
+    msg.hidden = false;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setScissorTest(true);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50); const HOME = new THREE.Vector3(0.95, 0.55, 1.75); camera.position.copy(HOME);
+    const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = !reduced; controls.dampingFactor = 0.08; controls.target.set(0, 0, 0);
+    const spinBox = el.querySelector('.spin'); if (reduced) spinBox.checked = false;
+    controls.autoRotate = spinBox.checked; controls.autoRotateSpeed = 1.2; let resumeT = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(resumeT); });
+    controls.addEventListener('end', () => { clearTimeout(resumeT); resumeT = setTimeout(() => { controls.autoRotate = spinBox.checked; }, 3000); });
+    spinBox.addEventListener('change', () => { controls.autoRotate = spinBox.checked; });
+    const tl = new THREE.TextureLoader(); const tex = NAMES.map(n => { const t = tl.load(`cases/${uid}/${n}.jpg`, () => render()); t.encoding = THREE.sRGBEncoding; t.flipY = false; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; });
+    const unlit = tex.map(t => new THREE.MeshBasicMaterial({ map: t, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
+    const wireMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x111111, transparent: true, opacity: 0.45, depthWrite: false }); const wires = [];
+    const wireBox = el.querySelector('.wire'); wireBox.addEventListener('change', () => { wires.forEach(w => { w.visible = wireBox.checked; }); needs = true; });
+    let mesh = null, single = false, which = 0, visible = true, needs = true;
+    new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
+      const ms = []; g.scene.traverse(o => { if (o.isMesh) ms.push(o); });   // collect first: adding children inside traverse() recurses into them
+      ms.forEach(o => { if (!mesh) mesh = o; o.material = unlit[0]; const w = new THREE.Mesh(o.geometry, wireMat); w.visible = wireBox.checked; wires.push(w); o.add(w); });
+      scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
+    }, undefined, () => { msg.textContent = '模型加载失败，显示缩略图'; });
+    function size() {
+      const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+      if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) renderer.setSize(w, h, false);
+      return [w, h];
+    }
+    function render() {
+      const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = unlit;
+      if (single) {
+        camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h); mesh.material = mats[which]; renderer.render(scene, camera);
+      } else {
+        const NP = NAMES.length, vw = Math.floor(w / NP); camera.aspect = vw / h; camera.updateProjectionMatrix();
+        for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, 0, vw, h); renderer.setScissor(i * vw, 0, vw, h); mesh.material = mats[i]; renderer.render(scene, camera); }
+      }
+    }
+    function loop() { if (!visible) return; controls.update(); render(); requestAnimationFrame(loop); }
+    controls.addEventListener('change', () => { needs = true; });
+    const sel = el.querySelector('.singlesel'); el.querySelector('.single').addEventListener('change', e => { single = e.target.checked; sel.hidden = !single; el.querySelector('.vlabels').style.visibility = single ? 'hidden' : 'visible'; });
+    sel.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', e => { which = +e.target.value; }));
+    el.querySelector('.reset').addEventListener('click', () => { camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update(); });
+    new ResizeObserver(() => { needs = true; }).observe(canvas);
+    const io = new IntersectionObserver(es => { es.forEach(x => { const was = visible; visible = x.isIntersecting; if (visible && !was) loop(); }); }, { rootMargin: '200px' });
+    io.observe(el); loop();
+  }
+  const pending = new IntersectionObserver(es => { es.forEach(x => { if (x.isIntersecting) { pending.unobserve(x.target); initCase(x.target); } }); }, { rootMargin: '600px' });
+  document.querySelectorAll('.case').forEach(el => pending.observe(el));
+})();
+document.querySelectorAll('.texzoom').forEach(b => b.addEventListener('click', () => { const g = b.closest('.texpanel').querySelector('.texpair'); const big = g.classList.toggle('big'); b.textContent = big ? '缩小' : '放大'; }));
+</script>
+
+</body></html>
