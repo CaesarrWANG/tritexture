@@ -353,13 +353,124 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <div class="tablewrap"><table><tr><th>案例</th><th class=n>面数</th><th class=n>原始 mesh：全部 / 高频</th><th class=n>大面切分：全部 / 高频</th></tr><tr><td>Spider-Man</td><td class=n>99,208</td><td class=n>23.9 / 29.6</td><td class=n pos>24.2 / 29.6</td></tr><tr><td>Soldier</td><td class=n>31,263</td><td class=n>21.3 / 31.2</td><td class=n pos>21.9 / 31.1</td></tr><tr><td>救护车</td><td class=n>48,270</td><td class=n>27.0 / 31.3</td><td class=n pos>28.2 / 31.2</td></tr><tr><td>Enternity Demon</td><td class=n>50,026</td><td class=n>30.3 / 36.4</td><td class=n pos>30.6 / 36.3</td></tr><tr><td>Hello Neighbor</td><td class=n>23,610</td><td class=n>24.6 / 28.0</td><td class=n>24.5 / 28.0</td></tr><tr><td>舞蹈面具</td><td class=n>8,046</td><td class=n>25.4 / 27.2</td><td class=n pos>25.5 / 27.3</td></tr><tr><td>Rippersnapper</td><td class=n>5,746</td><td class=n>20.3 / 23.8</td><td class=n pos>21.0 / 23.9</td></tr><tr><td>Shadowsun</td><td class=n>7,434</td><td class=n>24.4 / 27.3</td><td class=n pos>24.9 / 27.5</td></tr><tr><td>Dog</td><td class=n>33,384</td><td class=n>27.9 / 29.4</td><td class=n pos>27.9 / 29.4</td></tr><tr><td>Bee</td><td class=n>51,731</td><td class=n>23.5 / 25.4</td><td class=n pos>23.7 / 25.4</td></tr></table></div>
 <div class="stack"><figure class="imgfig"><img src="oldmodel/detail_994aec41.jpg" alt="救护车 细节裁剪" loading="lazy"><figcaption><strong>救护车</strong> · 裁剪区 PSNR 原始 27.0 / 大面切分 28.2 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_e610ab72.jpg" alt="舞蹈面具 细节裁剪" loading="lazy"><figcaption><strong>舞蹈面具</strong> · 裁剪区 PSNR 原始 25.4 / 大面切分 25.5 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_9a77cdf9.jpg" alt="Dog 细节裁剪" loading="lazy"><figcaption><strong>Dog</strong> · 裁剪区 PSNR 原始 27.9 / 大面切分 27.9 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_60ef2e59.jpg" alt="Bee 细节裁剪" loading="lazy"><figcaption><strong>Bee</strong> · 裁剪区 PSNR 原始 23.5 / 大面切分 23.7 dB</figcaption></figure></div><details class="more"><summary>展开其余 6 个案例（同样的三列布局）</summary><div class="stack"><figure class="imgfig"><img src="oldmodel/detail_522f50ca.jpg" alt="Spider-Man 细节裁剪" loading="lazy"><figcaption><strong>Spider-Man</strong> · 裁剪区 PSNR 原始 23.9 / 大面切分 24.2 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_67468672.jpg" alt="Soldier 细节裁剪" loading="lazy"><figcaption><strong>Soldier</strong> · 裁剪区 PSNR 原始 21.3 / 大面切分 21.9 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_ecbab41a.jpg" alt="Enternity Demon 细节裁剪" loading="lazy"><figcaption><strong>Enternity Demon</strong> · 裁剪区 PSNR 原始 30.3 / 大面切分 30.6 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_53bf4971.jpg" alt="Hello Neighbor 细节裁剪" loading="lazy"><figcaption><strong>Hello Neighbor</strong> · 裁剪区 PSNR 原始 24.6 / 大面切分 24.5 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_1aac7b79.jpg" alt="Rippersnapper 细节裁剪" loading="lazy"><figcaption><strong>Rippersnapper</strong> · 裁剪区 PSNR 原始 20.3 / 大面切分 21.0 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_209865ec.jpg" alt="Shadowsun 细节裁剪" loading="lazy"><figcaption><strong>Shadowsun</strong> · 裁剪区 PSNR 原始 24.4 / 大面切分 24.9 dB</figcaption></figure></div></details>
 
-<h2>4. 结论与下一步</h2>
+<h2>4. 结论</h2>
 <ul>
 <li><strong>监督密度不是瓶颈。</strong>每步监督点从随机 8 个改成全部 91 个，10k 步只高 0.4 dB。</li>
 <li><strong>输入采样密度在 10k 步内不是瓶颈。</strong>28 → 91 → 105 点，上界从 27 抬到 36 以上，模型反而略降。</li>
 <li><strong>大面切分对 10k 模型只是任务变容易</strong>：重训后相对 const 只好 0.7 dB，仍在 const 以下。对练够的 200k + 退火模型，小 mesh 上是超过 const 位移的真实增益（+2.76），完整数据上则不足 const 位移（+0.64）。</li>
-<li><strong>待回答</strong>：200k + 退火在小 mesh 上离 28 点上界只差 1 dB，输入点数此时是否已成上限。干净的测法是在 200k 权重上只换 91 点输入的面编码器微调 10k 步。</li>
+<li><strong>10k 步不足以下结论。</strong>网络先学低频再学高频，这个阶段看不出采样率对高频纹理的作用；练够的 200k + 退火模型在小 mesh 上离 28 点上界只差 1 dB，到那时点数才可能成为上限。</li>
 </ul>
+
+<h2>5. 后续计划的四点与进展（2026-10-21）</h2>
+<h3>5.1 切分改为在线进行？</h3>
+<p>切分本身很便宜，贵的是子面上的采样点：缓存每面只存 91 个点，子面需要在新位置重新从贴图采样。在线切分只能从一份更密的缓存里取子集。做法：建阶 24 的缓存（每面 325 点），训练时按面积阈值或面数预算把大面一分为四，每个子面取对应的 91 点子格，锚点文件自动重映射。阶值和预算都是运行时参数，不用重建缓存。</p>
+<div class="tablewrap"><table><tr><th>切分方式</th><th class=n>面数增加</th><th class=n>面积 PSNR</th><th class=n>const</th></tr><tr><td>不切</td><td class=n>0</td><td class=n>24.71</td><td class=n>24.10</td></tr><tr><td>在线一级，阈值 1/2048</td><td class=n>+0.2%</td><td class=n>25.03</td><td class=n>24.40</td></tr><tr><td>在线一级，阈值 1/8192</td><td class=n>+3.3%</td><td class=n>25.15</td><td class=n>24.51</td></tr><tr><td>预处理多级，阈值 1/2048</td><td class=n>+0.5%</td><td class=n pos>25.36</td><td class=n>24.92</td></tr></table></div>
+<p class="small">200k + 退火模型，完整数据 val32，推理时切分。<strong>结论：</strong>增益集中在少数需要切两到四级的巨大面上，一级切不到位；精确的第二级需要阶 48 缓存（1,225 点，存储 13 倍），不现实。多级切分继续用预处理（一次 2–3 小时、只多 0.5% 的面），在线切分留给一级就够的场景，例如面数预算均衡。阶 24 缓存已建，在线切分已实现并验证。</p>
+<h3>5.2 IO 与中间层的耗时，以及切分阈值的甜点区</h3>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="注意力模型一步前向的耗时拆分 (ms)，bf16 + 梯度检查点，按 mesh 面数" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">注意力模型一步前向的耗时拆分 (ms)，bf16 + 梯度检查点，按 mesh 面数</text>
+<line x1="44" x2="666" y1="249.7" y2="249.7" stroke="var(--grid)"/>
+<text x="38" y="253.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">0</text>
+<line x1="44" x2="666" y1="191.6" y2="191.6" stroke="var(--grid)"/>
+<text x="38" y="195.1" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">200</text>
+<line x1="44" x2="666" y1="133.5" y2="133.5" stroke="var(--grid)"/>
+<text x="38" y="137.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">400</text>
+<line x1="44" x2="666" y1="75.3" y2="75.3" stroke="var(--grid)"/>
+<text x="38" y="78.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">600</text>
+<text x="159.2" y="282" text-anchor="middle" fill="var(--fg2)">25k</text>
+<text x="284.4" y="282" text-anchor="middle" fill="var(--fg2)">50k</text>
+<text x="409.6" y="282" text-anchor="middle" fill="var(--fg2)">75k</text>
+<text x="534.8" y="282" text-anchor="middle" fill="var(--fg2)">100k</text>
+<text x="660.0" y="282" text-anchor="middle" fill="var(--fg2)">125k</text>
+<text x="355" y="296" text-anchor="middle" fill="var(--fg2)">面数</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">ms</text>
+<polyline points="44.0,245.5 73.2,238.9 136.2,216.3 185.8,207.2 322.9,171.2 534.8,127.6 666.0,101.3" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="245.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 2001 · 14.48 dB</title></circle>
+<circle cx="73.2" cy="238.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 7828 · 37.20 dB</title></circle>
+<circle cx="136.2" cy="216.3" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 20404 · 115.09 dB</title></circle>
+<circle cx="185.8" cy="207.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 30310 · 146.15 dB</title></circle>
+<circle cx="322.9" cy="171.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 57692 · 270.33 dB</title></circle>
+<circle cx="534.8" cy="127.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 100000 · 420.03 dB</title></circle>
+<circle cx="666.0" cy="101.3" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>IO：面编码 + 交叉注意力写入/读取 · 126203 · 510.70 dB</title></circle>
+<text x="660.0" y="93.3" text-anchor="end" fill="var(--s2)" font-weight="600">IO：面编码 + 交叉注意力写入/读取 510.70</text>
+<polyline points="44.0,207.4 73.2,205.8 136.2,211.0 185.8,195.5 322.9,201.8 534.8,214.9 666.0,215.5" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="207.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 2001 · 145.54 dB</title></circle>
+<circle cx="73.2" cy="205.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 7828 · 151.14 dB</title></circle>
+<circle cx="136.2" cy="211.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 20404 · 133.28 dB</title></circle>
+<circle cx="185.8" cy="195.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 30310 · 186.72 dB</title></circle>
+<circle cx="322.9" cy="201.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 57692 · 165.03 dB</title></circle>
+<circle cx="534.8" cy="214.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 100000 · 119.77 dB</title></circle>
+<circle cx="666.0" cy="215.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>中间层：8192 latent 的 16 层自注意力 · 126203 · 117.73 dB</title></circle>
+<text x="660.0" y="207.5" text-anchor="end" fill="var(--s1)" font-weight="600">中间层：8192 latent 的 16 层自注意力 117.73</text>
+<polyline points="44.0,202.2 73.2,193.7 136.2,175.4 185.8,151.5 322.9,121.0 534.8,89.2 666.0,61.8" fill="none" stroke="var(--fg2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="202.2" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 2001 · 163.40 dB</title></circle>
+<circle cx="73.2" cy="193.7" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 7828 · 192.92 dB</title></circle>
+<circle cx="136.2" cy="175.4" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 20404 · 255.82 dB</title></circle>
+<circle cx="185.8" cy="151.5" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 30310 · 338.04 dB</title></circle>
+<circle cx="322.9" cy="121.0" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 57692 · 442.87 dB</title></circle>
+<circle cx="534.8" cy="89.2" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 100000 · 552.15 dB</title></circle>
+<circle cx="666.0" cy="61.8" r="3" fill="var(--fg2)" stroke="var(--surface)" stroke-width="1.5"><title>前向合计 · 126203 · 646.71 dB</title></circle>
+<text x="660.0" y="53.8" text-anchor="end" fill="var(--fg2)" font-weight="600">前向合计 646.71</text>
+</svg><div class="legend"><span style="--c:var(--s2)">IO</span><span style="--c:var(--s1)">中间层</span><span style="--c:var(--fg2)">前向合计</span></div>
+<figcaption>注意力模型 200k + 退火，单卡 bf16，开梯度检查点，反向约为前向的 3 倍。中间层时间不随面数变化（120–190 ms），IO 随面数线性增长，几乎全在交叉注意力的写入和读取上，面编解码器只占几毫秒。两者在 2 万到 3 万面附近相等。峰值显存从 2k 面的 4 GB 到 126k 面的 27 GB。</figcaption></figure></div>
+<div class="tablewrap"><table><tr><th>面数</th><th class=n>前向</th><th class=n>IO</th><th class=n>中间层</th><th class=n>反向</th><th class=n>峰值显存</th></tr><tr><td class=n>2,001</td><td class=n>163 ms</td><td class=n>14</td><td class=n>146</td><td class=n>550 ms</td><td class=n>3.9 GB</td></tr><tr><td class=n>7,828</td><td class=n>193 ms</td><td class=n>37</td><td class=n>151</td><td class=n>542 ms</td><td class=n>4.3 GB</td></tr><tr><td class=n>20,404</td><td class=n>256 ms</td><td class=n>115</td><td class=n>133</td><td class=n>721 ms</td><td class=n>6.6 GB</td></tr><tr><td class=n>30,310</td><td class=n>338 ms</td><td class=n>146</td><td class=n>187</td><td class=n>789 ms</td><td class=n>8.6 GB</td></tr><tr><td class=n>57,692</td><td class=n>443 ms</td><td class=n>270</td><td class=n>165</td><td class=n>1165 ms</td><td class=n>13.8 GB</td></tr><tr><td class=n>100,000</td><td class=n>552 ms</td><td class=n>420</td><td class=n>120</td><td class=n>1806 ms</td><td class=n>22.0 GB</td></tr><tr><td class=n>126,203</td><td class=n>647 ms</td><td class=n>511</td><td class=n>118</td><td class=n>1943 ms</td><td class=n>27.1 GB</td></tr></table></div>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 680 280" width="100%" role="img" aria-label="推理时大面切分的阈值扫描：200k + 退火，完整数据 val32 面积 PSNR (dB)" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">推理时大面切分的阈值扫描：200k + 退火，完整数据 val32 面积 PSNR (dB)</text>
+<line x1="44" x2="666" y1="240.0" y2="240.0" stroke="var(--grid)"/>
+<text x="38" y="243.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">23</text>
+<line x1="44" x2="666" y1="210.0" y2="210.0" stroke="var(--grid)"/>
+<text x="38" y="213.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">23.5</text>
+<line x1="44" x2="666" y1="180.0" y2="180.0" stroke="var(--grid)"/>
+<text x="38" y="183.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="666" y1="150.0" y2="150.0" stroke="var(--grid)"/>
+<text x="38" y="153.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24.5</text>
+<line x1="44" x2="666" y1="120.0" y2="120.0" stroke="var(--grid)"/>
+<text x="38" y="123.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
+<line x1="44" x2="666" y1="90.0" y2="90.0" stroke="var(--grid)"/>
+<text x="38" y="93.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25.5</text>
+<line x1="44" x2="666" y1="60.0" y2="60.0" stroke="var(--grid)"/>
+<text x="38" y="63.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="666" y1="30.0" y2="30.0" stroke="var(--grid)"/>
+<text x="38" y="33.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26.5</text>
+<text transform="translate(11,135) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<text x="95.8" y="256" text-anchor="middle" fill="var(--fg)">不切</text>
+<path d="M70.8,240.0 v-98.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v98.6 z" fill="var(--s1)"><title>不切 · 模型 · 24.71</title></path>
+<text x="82.8" y="132.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.7</text>
+<path d="M96.8,240.0 v-62.0 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v62.0 z" fill="var(--grid)"><title>不切 · const 参照 · 24.10</title></path>
+<text x="108.8" y="169.0" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.1</text>
+<text x="199.5" y="256" text-anchor="middle" fill="var(--fg)">1/512</text>
+<path d="M174.5,240.0 v-133.4 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v133.4 z" fill="var(--s1)"><title>1/512 · 模型 · 25.29</title></path>
+<text x="186.5" y="97.6" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.3</text>
+<path d="M200.5,240.0 v-96.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v96.8 z" fill="var(--grid)"><title>1/512 · const 参照 · 24.68</title></path>
+<text x="212.5" y="134.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.7</text>
+<text x="303.2" y="256" text-anchor="middle" fill="var(--fg)">1/1024</text>
+<path d="M278.2,240.0 v-135.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v135.2 z" fill="var(--s1)"><title>1/1024 · 模型 · 25.32</title></path>
+<text x="290.2" y="95.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.3</text>
+<path d="M304.2,240.0 v-101.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v101.6 z" fill="var(--grid)"><title>1/1024 · const 参照 · 24.76</title></path>
+<text x="316.2" y="129.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.8</text>
+<text x="406.8" y="256" text-anchor="middle" fill="var(--fg)">1/2048</text>
+<path d="M381.8,240.0 v-137.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v137.6 z" fill="var(--s1)"><title>1/2048 · 模型 · 25.36</title></path>
+<text x="393.8" y="93.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.4</text>
+<path d="M407.8,240.0 v-111.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v111.2 z" fill="var(--grid)"><title>1/2048 · const 参照 · 24.92</title></path>
+<text x="419.8" y="119.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">24.9</text>
+<text x="510.5" y="256" text-anchor="middle" fill="var(--fg)">1/4096</text>
+<path d="M485.5,240.0 v-138.2 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v138.2 z" fill="var(--s1)"><title>1/4096 · 模型 · 25.37</title></path>
+<text x="497.5" y="92.8" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.4</text>
+<path d="M511.5,240.0 v-116.6 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v116.6 z" fill="var(--grid)"><title>1/4096 · const 参照 · 25.01</title></path>
+<text x="523.5" y="114.4" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.0</text>
+<text x="614.2" y="256" text-anchor="middle" fill="var(--fg)">1/8192</text>
+<path d="M589.2,240.0 v-144.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v144.8 z" fill="var(--s1)"><title>1/8192 · 模型 · 25.48</title></path>
+<text x="601.2" y="86.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.5</text>
+<path d="M615.2,240.0 v-126.8 a4,4 0 0 1 4,-4 h16.0 a4,4 0 0 1 4,4 v126.8 z" fill="var(--grid)"><title>1/8192 · const 参照 · 25.18</title></path>
+<text x="627.2" y="104.2" text-anchor="middle" fill="var(--fg)" font-size="10" style="font-variant-numeric:tabular-nums">25.2</text>
+</svg><div class="legend"><span style="--c:var(--s1)">模型</span><span style="--c:var(--grid)">const</span></div>
+<figcaption>推理时切分的阈值扫描。0.6 dB 的增益绝大部分在 1/512 就拿到了，只多 0.07% 的面；细分到 1/8192 只再多 0.2 dB 却多 5% 的面。模型相对 const 的优势从 0.61 缩到 0.30，说明旧模型用不上更密的点。</figcaption></figure></div>
+<p><strong>结论：</strong>训练集面数中位数 7.7k、均值 2.6 万，在 2 万到 3 万面以下加面几乎免费，之上每万面前向约多 40 ms、反向约多 120 ms。切分的甜点区在 1/512 到 1/2048 之间，正式运行采用 1/2048。另外发现：没有预计算锚点时，在线表面 FPS 每个 mesh 固定花 0.45 秒，比整个前向还贵，所有切分缓存都要预计算锚点。</p>
+<h3>5.3 各进程的负载均衡</h3>
+<p>训练器一直开着按面数分桶（<span class="mono">--size_bucket 1</span>）：每一步各进程拿到面数相近的 mesh。面数预算模式已在在线切分里实现，可把每个 mesh 切到指定面数，但受一级切分的限制，只适合小 mesh 补密度。按 5.2 的测量，IO 只在 2 万面以上才显著，这个机制的收益有限，等实验需要再启用。</p>
+<h3>5.4 一次性、训够步数的对照（进行中）</h3>
+<div class="tablewrap"><table><tr><th></th><th>旧模型 200k + 退火</th><th>新运行 roundS_attn_split_q91</th></tr><tr><td>面编解码器</td><td>原始（28 点注意力池化 + 逐点 MLP）</td><td>相同</td></tr><tr><td>锚点 / latent</td><td>8192 表面 FPS / 64 维</td><td>相同</td></tr><tr><td>数据</td><td>完整 Objaverse ≤ 20 万面</td><td>同一数据，大面切分缓存（阈值 1/2048，多级）</td></tr><tr><td>每步进损失的输出点</td><td>随机 8</td><td>全部 91</td></tr><tr><td>步数 / 学习率 / 批</td><td>200k 常数 3e-4 + 10k 退火，16 mesh</td><td>相同</td></tr><tr><td>状态</td><td>已完成</td><td>Slurm 4 节点 × 4 卡，排队中</td></tr></table></div>
+<p class="small">首次提交在第一步显存溢出：全监督让旧解码器的隐藏激活在 20 万面时达到 16 GB，反向再要一份。修复：训练时监督点超过 200 万个就分块解码并逐块重算（结果不变），并启用可扩展显存段；20 万面 mesh 的峰值从溢出降到 47 GB。200k 步约 3 天，退火后在 val32 与 64 mesh 两套评测上和旧模型并排比较，并补上 10 个案例的可视化。</p>
 <footer>生成脚本 build_oldmodel_page.py；可视化 scripts/old_model_cases_vis.py（tritex/split_infer.py）；数据：Objaverse 1.0 held-out。</footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
