@@ -369,6 +369,11 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <p>于是在线切分在数据进程里完成：几何和谱特征取自现有缓存，读 GLB 和贴图，递归切大面，只为切出来的子面从贴图上采 91 个点，新顶点的谱特征取两端点平均，锚点查询自动重映射到子面。每个 mesh 平均 0.27 秒，每张卡 4 个数据进程，远高于训练每步 2–3 秒的需求。阈值是运行时参数，不需要任何预处理，不占额外磁盘。</p>
 <div class="tablewrap"><table><tr><th></th><th class=n>面数</th><th class=n>面积 PSNR</th><th class=n>面</th><th class=n>资产中位数</th></tr><tr><td>不切</td><td class=n>2,055,321</td><td class=n>24.71</td><td class=n>26.27</td><td class=n>29.82</td></tr><tr><td>预处理切分缓存，阈值 1/2048</td><td class=n>2,064,960</td><td class=n>25.36</td><td class=n>26.26</td><td class=n>30.27</td></tr><tr><td>在线切分，阈值 1/2048</td><td class=n>2,064,960</td><td class=n>25.32</td><td class=n>26.26</td><td class=n>30.00</td></tr></table></div>
 <p class="small">200k + 退火模型，完整数据 val32。在线切分与预处理缓存逐面核对：面与父面一一相同，子面纹理最大差 1/255（缓存为 8 位量化），锚点位置误差 1e-8；PSNR 的 0.04 dB 差别来自谱分解两次运行的符号差异。<strong>结论：</strong>多级在线切分可用，后续实验改用它；原计划的 325 点密集缓存不再需要，已取消。正在排队的全规模运行用预处理缓存，结果等价。</p>
+<h4>能不能完全不用缓存，训练时直接读 GLB 现采？</h4>
+<p>可以但不划算。送进模型的量分四类，耗时差别很大（同上表，8 个随机训练 mesh，冷读，CPU）：</p>
+<div class="tablewrap"><table><tr><th>要准备的量</th><th class=n>每个 mesh 耗时</th><th>随切分 / 采样设置变化？</th><th>能否训练时现算</th></tr><tr><td>贴图采样点的颜色</td><td class=n>读取+解码 0.03–0.44 s，采样 0.02–0.77 s</td><td>会</td><td>能</td></tr><tr><td>归一化的顶点、面、面积</td><td class=n>≈ 0</td><td>会</td><td>能</td></tr><tr><td>顶点焊接 + 自交切割（CGAL）</td><td class=n neg>0.1–16 s，长尾</td><td>不会</td><td>不稳定</td></tr><tr><td>谱分解（32 个特征向量，位置编码用）</td><td class=n neg>0.03–11 s，长尾</td><td>不会</td><td>不稳定</td></tr></table></div>
+<p>后两项是位置编码需要的几何量，平均一两秒，但分布有长尾：Objaverse 里大量用户上传的模型存在自相交（零件互相穿插）、成百上千个不相连的碎块、退化三角形和非流形结构，CGAL 切割和 ARPACK 迭代在这些"坏 mesh"上要十几秒甚至卡死，建缓存时为此设了每个 mesh 10 分钟的超时。16 张卡同步训练时，任何一张卡的数据进程卡住十几秒，所有卡都要等它。而这两项几何量根本不随切分、阈值、采样密度变化，没有在线算的必要。</p>
+<p><strong>合理的折中是"几何缓存 + 在线纹理"：</strong>只缓存归一化几何、面积、谱特征和锚点（约为现有缓存体积的 5%，1.4 TB → 约 70 GB），贴图在训练时从 GLB 现采（全部面现采也只要零点几秒，数据进程有十倍余量）。这样缓存一次建好不再重建，而格点阶数、点数、切分阈值、面数预算，甚至每步随机的监督点位置，都变成运行时参数。这是一个独立于当前三路实验的改造，尚未实施。</p>
 <h3>5.2 IO 与中间层的耗时，以及切分阈值的甜点区</h3>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="注意力模型一步前向的耗时拆分 (ms)，bf16 + 梯度检查点，按 mesh 面数" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">注意力模型一步前向的耗时拆分 (ms)，bf16 + 梯度检查点，按 mesh 面数</text>
