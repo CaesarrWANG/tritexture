@@ -474,20 +474,18 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 </svg><div class="legend"><span style="--c:var(--s1)">模型</span><span style="--c:var(--grid)">const</span></div>
 <figcaption>推理时切分的阈值扫描。0.6 dB 的增益绝大部分在 1/512 就拿到了，只多 0.07% 的面；细分到 1/8192 只再多 0.2 dB 却多 5% 的面。模型相对 const 的优势从 0.61 缩到 0.30，说明旧模型用不上更密的点。</figcaption></figure></div>
 <h4>完整扫描到 1/131072（Slurm 数组，在线多级切分）</h4>
-<div class="figrow"><figure class="wide"><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="推理时切分的完整扫描：200k + 退火，val32 面积 PSNR (dB) 对阈值（x 轴 = log2(1/阈值)）" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
-<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">推理时切分的完整扫描：200k + 退火，val32 面积 PSNR (dB) 对阈值（x 轴 = log2(1/阈值)）</text>
+<div class="figrow"><figure class="wide"><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="推理时切分的完整扫描：200k + 退火，val32 PSNR (dB) 对阈值" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">推理时切分的完整扫描：200k + 退火，val32 PSNR (dB) 对阈值</text>
 <line x1="44" x2="666" y1="249.7" y2="249.7" stroke="var(--grid)"/>
 <text x="38" y="253.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
-<line x1="44" x2="666" y1="209.0" y2="209.0" stroke="var(--grid)"/>
-<text x="38" y="212.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25</text>
-<line x1="44" x2="666" y1="168.3" y2="168.3" stroke="var(--grid)"/>
-<text x="38" y="171.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
-<line x1="44" x2="666" y1="127.7" y2="127.7" stroke="var(--grid)"/>
-<text x="38" y="131.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">27</text>
+<line x1="44" x2="666" y1="195.5" y2="195.5" stroke="var(--grid)"/>
+<text x="38" y="199.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="666" y1="141.2" y2="141.2" stroke="var(--grid)"/>
+<text x="38" y="144.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
 <line x1="44" x2="666" y1="87.0" y2="87.0" stroke="var(--grid)"/>
-<text x="38" y="90.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
-<line x1="44" x2="666" y1="46.3" y2="46.3" stroke="var(--grid)"/>
-<text x="38" y="49.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">29</text>
+<text x="38" y="90.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<line x1="44" x2="666" y1="32.7" y2="32.7" stroke="var(--grid)"/>
+<text x="38" y="36.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">32</text>
 <text x="44.0" y="282" text-anchor="middle" fill="var(--fg2)">不切</text>
 <text x="373.3" y="282" text-anchor="middle" fill="var(--fg2)">1/512</text>
 <text x="446.5" y="282" text-anchor="middle" fill="var(--fg2)">1/2048</text>
@@ -496,33 +494,33 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <text x="666.0" y="282" text-anchor="middle" fill="var(--fg2)">1/131072</text>
 <text x="355" y="296" text-anchor="middle" fill="var(--fg2)">阈值</text>
 <text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
-<polyline points="44.0,220.6 373.3,198.1 409.9,197.4 446.5,196.2 483.1,195.2 519.6,191.7 556.2,171.3 592.8,178.6 629.4,159.1 666.0,174.0" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="44.0" cy="220.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 0 · 24.71 dB</title></circle>
-<circle cx="373.3" cy="198.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 9.0 · 25.27 dB</title></circle>
-<circle cx="409.9" cy="197.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 10.0 · 25.29 dB</title></circle>
-<circle cx="446.5" cy="196.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 11.0 · 25.32 dB</title></circle>
-<circle cx="483.1" cy="195.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 12.0 · 25.34 dB</title></circle>
-<circle cx="519.6" cy="191.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 13.0 · 25.43 dB</title></circle>
-<circle cx="556.2" cy="171.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 14.0 · 25.93 dB</title></circle>
-<circle cx="592.8" cy="178.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 15.0 · 25.75 dB</title></circle>
-<circle cx="629.4" cy="159.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 16.0 · 26.23 dB</title></circle>
-<circle cx="666.0" cy="174.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>模型 · 17.0 · 25.86 dB</title></circle>
-<text x="660.0" y="166.0" text-anchor="end" fill="var(--s1)" font-weight="600">模型 25.86</text>
-<polyline points="44.0,245.7 373.3,222.2 409.9,218.9 446.5,212.5 483.1,208.7 519.6,201.6 556.2,191.9 592.8,162.2 629.4,134.8 666.0,85.4" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="44.0" cy="245.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 0 · 24.10 dB</title></circle>
-<circle cx="373.3" cy="222.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 9.0 · 24.68 dB</title></circle>
-<circle cx="409.9" cy="218.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 10.0 · 24.76 dB</title></circle>
-<circle cx="446.5" cy="212.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 11.0 · 24.92 dB</title></circle>
-<circle cx="483.1" cy="208.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 12.0 · 25.01 dB</title></circle>
-<circle cx="519.6" cy="201.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 13.0 · 25.18 dB</title></circle>
-<circle cx="556.2" cy="191.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 14.0 · 25.42 dB</title></circle>
-<circle cx="592.8" cy="162.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 15.0 · 26.15 dB</title></circle>
-<circle cx="629.4" cy="134.8" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 16.0 · 26.83 dB</title></circle>
-<circle cx="666.0" cy="85.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>const 参照 · 17.0 · 28.04 dB</title></circle>
-<text x="660.0" y="77.4" text-anchor="end" fill="var(--s2)" font-weight="600">const 参照 28.04</text>
-</svg><div class="legend"><span style="--c:var(--s1)">模型</span><span style="--c:var(--s2)">const</span></div></figure></div>
-<div class="tablewrap"><table><tr><th>阈值</th><th class=n>面数倍数</th><th class=n>面积 PSNR</th><th class=n>const</th><th class=n>模型 − const</th><th class=n>面 PSNR</th><th class=n>资产中位数</th><th class=n>插值上界</th></tr><tr><td>不切</td><td class=n>1.000</td><td class=n>24.71</td><td class=n>24.10</td><td class=n pos>+0.62</td><td class=n>26.27</td><td class=n>29.82</td><td class=n>29.20</td></tr><tr><td>1/512</td><td class=n>1.001</td><td class=n>25.27</td><td class=n>24.68</td><td class=n pos>+0.59</td><td class=n>26.27</td><td class=n>29.98</td><td class=n>30.28</td></tr><tr><td>1/1024</td><td class=n>1.002</td><td class=n>25.29</td><td class=n>24.76</td><td class=n pos>+0.53</td><td class=n>26.27</td><td class=n>29.98</td><td class=n>30.34</td></tr><tr><td>1/2048</td><td class=n>1.005</td><td class=n>25.32</td><td class=n>24.92</td><td class=n pos>+0.40</td><td class=n>26.26</td><td class=n>30.00</td><td class=n>30.48</td></tr><tr><td>1/4096</td><td class=n>1.016</td><td class=n>25.34</td><td class=n>25.01</td><td class=n pos>+0.33</td><td class=n>26.26</td><td class=n>30.26</td><td class=n>30.57</td></tr><tr><td>1/8192</td><td class=n>1.051</td><td class=n>25.43</td><td class=n>25.18</td><td class=n pos>+0.24</td><td class=n>26.25</td><td class=n>30.62</td><td class=n>30.80</td></tr><tr><td>1/16384</td><td class=n>1.177</td><td class=n>25.93</td><td class=n>25.42</td><td class=n pos>+0.51</td><td class=n>26.29</td><td class=n>30.61</td><td class=n>30.99</td></tr><tr><td>1/32768</td><td class=n>1.524</td><td class=n>25.75</td><td class=n>26.15</td><td class=n neg>-0.40</td><td class=n>26.30</td><td class=n>30.57</td><td class=n>32.03</td></tr><tr><td>1/65536</td><td class=n>2.503</td><td class=n pos>26.23</td><td class=n>26.83</td><td class=n neg>-0.60</td><td class=n>26.54</td><td class=n>30.49</td><td class=n>32.82</td></tr><tr><td>1/131072</td><td class=n>4.527</td><td class=n>25.86</td><td class=n>28.04</td><td class=n neg>-2.18</td><td class=n>26.33</td><td class=n>30.46</td><td class=n>34.12</td></tr></table></div>
-<p class="small">val32（完整数据，2 万–13 万面），旧模型 200k + 退火，推理时在线多级切分，权重不变。<strong>观察：</strong>模型的面积 PSNR 随阈值变细缓慢上升，到 1/65536 达到 26.23（+1.5 dB，面数 2.5 倍），再细就回落；const 一路上升，从 1/32768 起反超模型。也就是说面切到足够小之后，旧模型对单个小面的重建误差已经大于面内本身的颜色变化，它在这些面上做得还不如填平均色。切分对旧模型的收益上限约 1.5 dB，且需要 2.5 倍的面；在 1/512 处用 0.1% 的面就拿到其中的 0.6 dB。</p>
+<polyline points="44.0,230.3 373.3,215.3 409.9,214.8 446.5,214.0 483.1,213.4 519.6,211.0 556.2,197.5 592.8,202.3 629.4,189.3 666.0,199.2" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="230.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 0 · 24.71 dB</title></circle>
+<circle cx="373.3" cy="215.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 9.0 · 25.27 dB</title></circle>
+<circle cx="409.9" cy="214.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 10.0 · 25.29 dB</title></circle>
+<circle cx="446.5" cy="214.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 11.0 · 25.32 dB</title></circle>
+<circle cx="483.1" cy="213.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 12.0 · 25.34 dB</title></circle>
+<circle cx="519.6" cy="211.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 13.0 · 25.43 dB</title></circle>
+<circle cx="556.2" cy="197.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 14.0 · 25.93 dB</title></circle>
+<circle cx="592.8" cy="202.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 15.0 · 25.75 dB</title></circle>
+<circle cx="629.4" cy="189.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 16.0 · 26.23 dB</title></circle>
+<circle cx="666.0" cy="199.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>面积 PSNR · 17.0 · 25.86 dB</title></circle>
+<text x="660.0" y="191.2" text-anchor="end" fill="var(--s1)" font-weight="600">面积 PSNR 25.86</text>
+<polyline points="44.0,91.8 373.3,87.5 409.9,87.5 446.5,86.9 483.1,79.8 519.6,70.2 556.2,70.5 592.8,71.5 629.4,73.8 666.0,74.5" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="91.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 0 · 29.82 dB</title></circle>
+<circle cx="373.3" cy="87.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 9.0 · 29.98 dB</title></circle>
+<circle cx="409.9" cy="87.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 10.0 · 29.98 dB</title></circle>
+<circle cx="446.5" cy="86.9" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 11.0 · 30.00 dB</title></circle>
+<circle cx="483.1" cy="79.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 12.0 · 30.26 dB</title></circle>
+<circle cx="519.6" cy="70.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 13.0 · 30.62 dB</title></circle>
+<circle cx="556.2" cy="70.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 14.0 · 30.61 dB</title></circle>
+<circle cx="592.8" cy="71.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 15.0 · 30.57 dB</title></circle>
+<circle cx="629.4" cy="73.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 16.0 · 30.49 dB</title></circle>
+<circle cx="666.0" cy="74.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>资产中位数 PSNR · 17.0 · 30.46 dB</title></circle>
+<text x="660.0" y="66.5" text-anchor="end" fill="var(--s3)" font-weight="600">资产中位数 PSNR 30.46</text>
+</svg><div class="legend"><span style="--c:var(--s1)">面积 PSNR</span><span style="--c:var(--s3)">资产中位数</span></div></figure></div>
+<div class="tablewrap"><table><tr><th>阈值</th><th class=n>面数倍数</th><th class=n>面积 PSNR</th><th class=n>相对不切</th><th class=n>面 PSNR</th><th class=n>资产中位数</th><th class=n>每 mesh 评测耗时</th></tr><tr><td>不切</td><td class=n>1.000</td><td class=n>24.71</td><td class=n>+0.00</td><td class=n>26.27</td><td class=n>29.82</td><td class=n>0.81 s</td></tr><tr><td>1/512</td><td class=n>1.001</td><td class=n>25.27</td><td class=n>+0.55</td><td class=n>26.27</td><td class=n>29.98</td><td class=n>0.82 s</td></tr><tr><td>1/1024</td><td class=n>1.002</td><td class=n>25.29</td><td class=n>+0.57</td><td class=n>26.27</td><td class=n>29.98</td><td class=n>0.82 s</td></tr><tr><td>1/2048</td><td class=n>1.005</td><td class=n>25.32</td><td class=n>+0.60</td><td class=n>26.26</td><td class=n>30.00</td><td class=n>0.83 s</td></tr><tr><td>1/4096</td><td class=n>1.016</td><td class=n>25.34</td><td class=n>+0.62</td><td class=n>26.26</td><td class=n>30.26</td><td class=n>0.82 s</td></tr><tr><td>1/8192</td><td class=n>1.051</td><td class=n>25.43</td><td class=n>+0.71</td><td class=n>26.25</td><td class=n>30.62</td><td class=n>0.85 s</td></tr><tr><td>1/16384</td><td class=n>1.177</td><td class=n>25.93</td><td class=n>+1.21</td><td class=n>26.29</td><td class=n>30.61</td><td class=n>0.93 s</td></tr><tr><td>1/32768</td><td class=n>1.524</td><td class=n>25.75</td><td class=n>+1.03</td><td class=n>26.30</td><td class=n>30.57</td><td class=n>1.16 s</td></tr><tr><td>1/65536</td><td class=n>2.503</td><td class=n pos>26.23</td><td class=n>+1.51</td><td class=n>26.54</td><td class=n>30.49</td><td class=n>1.83 s</td></tr><tr><td>1/131072</td><td class=n>4.527</td><td class=n>25.86</td><td class=n>+1.15</td><td class=n>26.33</td><td class=n>30.46</td><td class=n>2.83 s</td></tr></table></div>
+<p class="small">val32（完整数据，2 万–13 万面），旧模型 200k + 退火，推理时在线多级切分，权重不变。<strong>观察：</strong>面积 PSNR 随阈值变细缓慢上升，到 1/65536 达到峰值 26.23（+1.5 dB，面数 2.5 倍），再细就回落到 25.86；1/512 用 0.1% 的面就拿到 +0.6 dB，1/8192 到 1/16384 之间有一个小台阶。资产中位数在 1/8192 附近就到顶（30.6），之后不再变。切分对这个模型的收益上限约 1.5 dB，性价比最高的区间是 1/512 到 1/16384。</p>
 <p><strong>结论：</strong>训练集面数中位数 7.7k、均值 2.6 万，在 2 万到 3 万面以下加面几乎免费，之上每万面前向约多 40 ms、反向约多 120 ms。切分的甜点区在 1/512 到 1/2048 之间，正式运行采用 1/2048。另外发现：没有预计算锚点时，在线表面 FPS 每个 mesh 固定花 0.45 秒，比整个前向还贵，所有切分缓存都要预计算锚点。</p>
 <h3>5.3 各进程的负载均衡</h3>
 <p><strong>已有机制：</strong>训练器一直开着按面数分桶（<span class="mono">--size_bucket 1</span>），每一步各进程拿到面数相近的 mesh，大 mesh 和大 mesh 配对，所以不会出现一张卡算 10 万面、另一张算 2 千面干等的情况。</p>
