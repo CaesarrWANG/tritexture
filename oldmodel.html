@@ -66,7 +66,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px} details.more summary{cursor:pointer;font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续</a><a href="vae.html">纹理 VAE 汇报</a><a href="dit.html">纹理 DiT 汇报</a></p>
+<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续</a><a href="vae.html">纹理 VAE 汇报</a><a href="dit.html">纹理 DiT 汇报</a><a href="ftpbr.html">微调对照与 PBR</a></p>
 <p class="eyebrow">TriTex · attention-latent VAE · 2026-10-19 至 10-20</p>
 <h1>旧模型探索：采样点、监督点与大面切分</h1>
 <p class="sub">问题：注意力 latent 的旧模型，是不是被每面 28 个采样点、每步只监督 8 个点限制住了？做法：在 ≤ 8192 面子集上以同一配方各训 10k 步，分别加大输入采样点、监督点，以及把大面递归切小；再把练到 200k 的模型放到切分后的 mesh 上推理。</p>
