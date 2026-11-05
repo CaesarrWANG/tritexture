@@ -1,0 +1,62 @@
+{
+ "522f50cae5cc4a6c9a7fbd5b4e36bbbf": {
+  "faces0": 99208,
+  "faces_split": 100753,
+  "verts": 51277,
+  "bytes": 1825284
+ },
+ "6746867266f04bf5aed3b4f0a6df278c": {
+  "faces0": 31263,
+  "faces_split": 53484,
+  "verts": 28993,
+  "bytes": 990644
+ },
+ "994aec4131c243dfa4cd2598e79eabaa": {
+  "faces0": 48270,
+  "faces_split": 69885,
+  "verts": 39614,
+  "bytes": 1314908
+ },
+ "ecbab41a56c24b7fa88203f415b56d5a": {
+  "faces0": 50026,
+  "faces_split": 68404,
+  "verts": 36151,
+  "bytes": 1255580
+ },
+ "53bf4971eccb4d5dbe20db083919c44d": {
+  "faces0": 23610,
+  "faces_split": 42102,
+  "verts": 22707,
+  "bytes": 778628
+ },
+ "e610ab728a124989882c209d764f046d": {
+  "faces0": 8046,
+  "faces_split": 35610,
+  "verts": 20552,
+  "bytes": 674860
+ },
+ "1aac7b79651d4bad96e49c13d3a8975e": {
+  "faces0": 5746,
+  "faces_split": 37516,
+  "verts": 21635,
+  "bytes": 710732
+ },
+ "209865ec00284af5b34d3faa999e1baf": {
+  "faces0": 7434,
+  "faces_split": 36339,
+  "verts": 20815,
+  "bytes": 686764
+ },
+ "9a77cdf9dac043039d516fc3a764e8f5": {
+  "faces0": 33384,
+  "faces_split": 52758,
+  "verts": 27319,
+  "bytes": 961836
+ },
+ "60ef2e59ee2a492a9677c75b745cb9a1": {
+  "faces0": 51731,
+  "faces_split": 71666,
+  "verts": 38437,
+  "bytes": 1322152
+ }
+}
