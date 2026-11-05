@@ -1,16 +1,25 @@
 {
  "tokens": {
   "2775": {
-   "marked_faces": 3
+   "dot_faces": 23,
+   "marked_texels": 5638
   },
   "6506": {
-   "marked_faces": 5
+   "dot_faces": 22,
+   "marked_texels": 13257
   },
   "2596": {
-   "marked_faces": 4
+   "dot_faces": 10,
+   "marked_texels": 6225
   },
   "1433": {
-   "marked_faces": 35
+   "dot_faces": 196,
+   "marked_texels": 5549
   }
+ },
+ "mark": {
+  "dot_r": 0.015,
+  "ring_r0": 0.045,
+  "ring_r1": 0.06
  }
 }
