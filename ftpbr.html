@@ -1184,28 +1184,18 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <figure class="imgfig"><img src="ftpbr/anc_strip_view1.jpg" alt="锚点分布 视角 1" loading="lazy"><figcaption>锚点位置（红点，只画当前视角可见的）：8192 表面 FPS（训练设置） / 均匀 16384 / 均匀 32768 / 8192 + 2048 纹理区 / 8192 + 8192 纹理区</figcaption></figure><figure class="imgfig"><img src="ftpbr/anc_strip_view2.jpg" alt="锚点分布 视角 2" loading="lazy"><figcaption>锚点位置（红点，只画当前视角可见的）：8192 表面 FPS（训练设置） / 均匀 16384 / 均匀 32768 / 8192 + 2048 纹理区 / 8192 + 8192 纹理区</figcaption></figure>
 <figure class="imgfig"><img src="ftpbr/anc_crops.jpg" alt="高频区域裁剪对比" loading="lazy"><figcaption>自动选出的高频窗口（GT 拉普拉斯能量最大处）放大 3 倍：车牌 / 徽章 / 进气格栅；列为 GT / 8192 / 均匀 16384 / 均匀 32768 / 8192 + 8192 纹理区。</figcaption></figure>
 <h4>交互式 3D 对比（只看 albedo）</h4>
-<p>各列共享相机：GT / 8192 / 均匀 16384 / 均匀 32768 / 8192+2048 纹理 / 8192+8192 纹理；贴图烘焙在 GT 的 UV 布局上。</p>
+<p>各列共享相机：GT / 8192 / 均匀 16384 / 均匀 32768 / 8192+2048 纹理 / 8192+8192 纹理；上排为纹理，下排为同一配置的锚点（红点），贴图烘焙在 GT 的 UV 布局上。</p>
 
-<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_anc_base_alb,recon_anc_sfps16384_alb,recon_anc_sfps32768_alb,recon_anc_tex8192p2048_alb,recon_anc_tex8192p8192_alb">
+<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_anc_base_alb,recon_anc_sfps16384_alb,recon_anc_sfps32768_alb,recon_anc_tex8192p2048_alb,recon_anc_tex8192p8192_alb" data-aux="-,pts:base,pts:sfps16384,pts:sfps32768,pts:tex8192p2048,pts:tex8192p8192">
 <div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">48,270 面 · 1/16384 切分后 69,885 面 · held-out</span></div>
 <div class="meta">纹理面 albedo 格点 PSNR：8192 24.60 · 均匀 16384 26.33 · 均匀 32768 27.76 · 8192+2048 纹理 27.36 · 8192+8192 纹理 27.72 dB</div></div>
-<div class="canvaswrap" style="aspect-ratio:6/1.3"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap" style="aspect-ratio:6/2.6"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels" style="grid-template-columns:repeat(6,1fr)"><span>GT</span><span>8192</span><span>均匀 16384</span><span>均匀 32768</span><span>8192+2048 纹理</span><span>8192+8192 纹理</span></div>
 <div class="ctrl"><label><input type="checkbox" class="spin" checked> 自动旋转</label><label><input type="checkbox" class="single"> 单视图</label><label><input type="checkbox" class="wire"> 显示网格</label>
 <span class="singlesel" hidden><label><input type="radio" name="anc-994aec41" value="0" checked> GT</label><label><input type="radio" name="anc-994aec41" value="1"> 8192</label><label><input type="radio" name="anc-994aec41" value="2"> 均匀 16384</label><label><input type="radio" name="anc-994aec41" value="3"> 均匀 32768</label><label><input type="radio" name="anc-994aec41" value="4"> 8192+2048 纹理</label><label><input type="radio" name="anc-994aec41" value="5"> 8192+8192 纹理</label></span>
 <button type="button" class="reset">重置视角</button></div>
 <div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：GT / 8192 / 均匀 16384 / 均匀 32768 / 8192+2048 纹理 / 8192+8192 纹理</span><button type="button" class="texzoom">放大</button></div>
 <div class="texpair" style="grid-template-columns:repeat(6,minmax(0,1fr));max-width:none"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="GT" loading="lazy"></a><figcaption>GT</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" alt="8192" loading="lazy"></a><figcaption>8192</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps16384_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps16384_alb_disp.jpg" alt="均匀 16384" loading="lazy"></a><figcaption>均匀 16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" alt="均匀 32768" loading="lazy"></a><figcaption>均匀 32768</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_tex8192p2048_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_tex8192p2048_alb_disp.jpg" alt="8192+2048 纹理" loading="lazy"></a><figcaption>8192+2048 纹理</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_tex8192p8192_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_tex8192p8192_alb_disp.jpg" alt="8192+8192 纹理" loading="lazy"></a><figcaption>8192+8192 纹理</figcaption></figure></div></div>
-</div>
-<h4>对应的锚点点云（3D）</h4>
-<p>同一相机下每种配置的锚点位置（红点，8192 8,192 个, 均匀 16384 16,384 个, 均匀 32768 32,768 个, 8192+2048 纹理 10,240 个, 8192+8192 纹理 16,384 个），灰色为原始 mesh。纹理区加密的两列可以看到红点集中在车顶的红十字和文字、车门字样、车尾徽章上。</p>
-<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil" data-ncol="5" data-points="base,sfps16384,sfps32768,tex8192p2048,tex8192p8192">
-<div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">锚点点云</span></div></div>
-<div class="canvaswrap" style="aspect-ratio:5/1.3"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 锚点点云"></canvas><div class="loadmsg" hidden>加载中…</div></div>
-<div class="vlabels" style="grid-template-columns:repeat(5,1fr)"><span>8192（8,192）</span><span>均匀 16384（16,384）</span><span>均匀 32768（32,768）</span><span>8192+2048 纹理（10,240）</span><span>8192+8192 纹理（16,384）</span></div>
-<div class="ctrl"><label><input type="checkbox" class="spin" checked> 自动旋转</label><label><input type="checkbox" class="single"> 单视图</label><label><input type="checkbox" class="wire"> 显示网格</label>
-<span class="singlesel" hidden><label><input type="radio" name="pts-994aec41" value="0" checked> 8192（8,192）</label><label><input type="radio" name="pts-994aec41" value="1"> 均匀 16384（16,384）</label><label><input type="radio" name="pts-994aec41" value="2"> 均匀 32768（32,768）</label><label><input type="radio" name="pts-994aec41" value="3"> 8192+2048 纹理（10,240）</label><label><input type="radio" name="pts-994aec41" value="4"> 8192+8192 纹理（16,384）</label></span>
-<button type="button" class="reset">重置视角</button></div>
 </div>
 <p class="small">脚本：scripts/anchor_density_test.py（指标与裁剪）、scripts/anchor_density_bake.py（贴图与锚点分布图）；结果目录 outputs/viewer/anchor_density_994aec41/。下一步：在 val32 上整体跑一遍均匀 16384 / 32768 和“8192 + 纹理区”，确认不是单例；成立的话推理默认加密，DiT 侧考虑变长 latent。</p>
 <h3>3.10 推理时按纹理细分面：锚点不变，只增加 KV</h3>
@@ -1217,11 +1207,11 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <li><strong>看图：</strong>固定锚点时，细分后车牌上出现了隐约的笔画、徽章的环更完整，但数字仍不可读；32768 锚点 + 细分之后徽章的环和中心图案基本成形，车牌能看出数字的位置和深浅，仍达不到可读。要读出文字，大概需要训练时就让模型在这种密度下工作（锚点和切分一起加），而不是只在推理时改。</li>
 </ul>
 <figure class="imgfig"><img src="ftpbr/subdiv_crops.jpg" alt="切分对比裁剪" loading="lazy"><figcaption>车牌（上两行）和徽章（下两行）：第 1、3 行固定 8192 锚点，第 2、4 行均匀 32768 锚点；列为 GT / 现有切分 / 纹理子面再切到 1/65536 / 再切到 1/262144 / 全部均匀切到 1/65536。</figcaption></figure>
-<h4>交互式 3D 对比（只看 albedo）</h4><p>各列共享相机：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536。</p>
-<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_anc_base_alb,recon_sub262_base_alb,recon_anc_sfps32768_alb,recon_sub262_sfps32768_alb,recon_subu65_sfps32768_alb">
+<h4>交互式 3D 对比（只看 albedo）</h4><p>各列共享相机：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536；上排为纹理，下排为该列推理时用的网格（线框）。</p>
+<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_anc_base_alb,recon_sub262_base_alb,recon_anc_sfps32768_alb,recon_sub262_sfps32768_alb,recon_subu65_sfps32768_alb" data-aux="mesh:geom,mesh:geom_split,mesh:geom_split_tex262144,mesh:geom_split,mesh:geom_split_tex262144,mesh:geom_split_uni65536">
 <div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">48,270 面 · held-out</span></div>
 </div>
-<div class="canvaswrap" style="aspect-ratio:6/1.3"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="canvaswrap" style="aspect-ratio:6/2.6"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
 <div class="vlabels" style="grid-template-columns:repeat(6,1fr)"><span>GT</span><span>8192 · 1/16384</span><span>8192 · 纹理区→1/262144</span><span>32768 · 1/16384</span><span>32768 · 纹理区→1/262144</span><span>32768 · 均匀 1/65536</span></div>
 <div class="ctrl"><label><input type="checkbox" class="spin" checked> 自动旋转</label><label><input type="checkbox" class="single"> 单视图</label><label><input type="checkbox" class="wire"> 显示网格</label>
 <span class="singlesel" hidden><label><input type="radio" name="sub-994aec41" value="0" checked> GT</label><label><input type="radio" name="sub-994aec41" value="1"> 8192 · 1/16384</label><label><input type="radio" name="sub-994aec41" value="2"> 8192 · 纹理区→1/262144</label><label><input type="radio" name="sub-994aec41" value="3"> 32768 · 1/16384</label><label><input type="radio" name="sub-994aec41" value="4"> 32768 · 纹理区→1/262144</label><label><input type="radio" name="sub-994aec41" value="5"> 32768 · 均匀 1/65536</label></span>
@@ -1229,7 +1219,6 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536</span><button type="button" class="texzoom">放大</button></div>
 <div class="texpair" style="grid-template-columns:repeat(6,minmax(0,1fr));max-width:none"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="GT" loading="lazy"></a><figcaption>GT</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" alt="8192 · 1/16384" loading="lazy"></a><figcaption>8192 · 1/16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_base_alb_disp.jpg" alt="8192 · 纹理区→1/262144" loading="lazy"></a><figcaption>8192 · 纹理区→1/262144</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" alt="32768 · 1/16384" loading="lazy"></a><figcaption>32768 · 1/16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_sfps32768_alb_disp.jpg" alt="32768 · 纹理区→1/262144" loading="lazy"></a><figcaption>32768 · 纹理区→1/262144</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_sfps32768_alb_disp.jpg" alt="32768 · 均匀 1/65536" loading="lazy"></a><figcaption>32768 · 均匀 1/65536</figcaption></figure></div></div>
 </div>
-<h4>对应的切分后网格</h4><figure class="imgfig"><img src="ftpbr/subdiv_mesh.jpg" alt="切分后网格线框" loading="lazy"><figcaption>四种切分方案的网格（线框，灰色按法线着色）；列为 1/16384（现有）/ 纹理子面再切到 1/65536 / 再切到 1/262144 / 全部均匀切到 1/65536，子面数 69,885 / 72,651 / 78,624 / 153,660。第 1 行整车，第 2、3 行是上面裁剪图所用的车牌和徽章窗口：纹理细分只在车牌、徽章、锈迹这些地方加密，均匀细分则处处加密。</figcaption></figure>
 <p class="small">脚本：tritex/dataset.py <code>split_tex_frac / split_tex_std</code>（<code>split_faces_once</code>），scripts/anchor_density_test.py <code>--tex_frac</code>；结果目录 outputs/viewer/anchor_density_994aec41_tex65536 / _tex262144 / _uni65536。</p>
 
 <footer>生成脚本 build_ft_pbr_page.py；统一重评 scripts/split_sweep_eval.py → outputs/unified_eval/；数据：Objaverse 1.0 held-out。</footer>
@@ -1261,21 +1250,31 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
     const unlit = tex.map(t => new THREE.MeshBasicMaterial({ map: t, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
     const wireMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x111111, transparent: true, opacity: 0.45, depthWrite: false }); const wires = [];
     const wireBox = el.querySelector('.wire'); wireBox.addEventListener('change', () => { wires.forEach(w => { w.visible = wireBox.checked; }); needs = true; });
-    let chOff = 0, mesh = null, meshS = null, PTS = el.dataset.points ? el.dataset.points.split(',') : null, ptsList = [], greyMat = null, single = false, which = 0, visible = true, needs = true;
+    let chOff = 0, mesh = null, meshS = null, AUX = el.dataset.aux ? el.dataset.aux.split(',') : null, auxObjs = [], baseGrey = null, greyMat = null, sceneA = new THREE.Scene(), single = false, which = 0, visible = true, needs = true;
     new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
       const ms = []; g.scene.traverse(o => { if (o.isMesh) ms.push(o); });   // collect first: adding children inside traverse() recurses into them
       ms.forEach(o => { if (!mesh) mesh = o; o.material = unlit[0]; const w = new THREE.Mesh(o.geometry, wireMat); w.visible = wireBox.checked; wires.push(w); o.add(w); });
-      scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
+      scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true; if (AUX) setupAux();
     }, undefined, () => { msg.textContent = '模型加载失败，显示缩略图'; });
-    if (PTS) { greyMat = new THREE.MeshLambertMaterial({ color: 0xd4d4d4, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }); scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, 1.0));
-      PTS.forEach((nm, j) => fetch(`cases/${uid}/anchors_${nm}.f32`).then(r => r.arrayBuffer()).then(buf => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(buf), 3));
-        const p = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xd81e1e, size: 0.011, sizeAttenuation: true })); p.visible = false; ptsList[j] = p; scene.add(p); needs = true; })); }
     if (SPLIT) new THREE.GLTFLoader().load(`cases/${uid}/geom_split.glb`, g => {
       const flat = new THREE.MeshLambertMaterial({ color: 0xd9d9d9, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
       const wireS = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x111111, transparent: true, opacity: 0.7, depthWrite: false });
       const ms2 = []; g.scene.traverse(o => { if (o.isMesh) ms2.push(o); }); ms2.forEach(o => { o.material = flat; o.add(new THREE.Mesh(o.geometry, wireS)); });
       sceneS.add(g.scene); sceneS.add(new THREE.HemisphereLight(0xffffff, 0x777777, 1.0)); meshS = ms2[0]; needs = true;
     });
+    function setupAux() {
+      greyMat = new THREE.MeshLambertMaterial({ color: 0xd4d4d4, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+      const wireA = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x111111, transparent: true, opacity: 0.6, depthWrite: false });
+      sceneA.add(new THREE.HemisphereLight(0xffffff, 0x777777, 1.0)); baseGrey = new THREE.Group();
+      scene.traverse(o => { if (o.isMesh && o.material !== wireMat) baseGrey.add(new THREE.Mesh(o.geometry, greyMat)); }); sceneA.add(baseGrey);
+      AUX.forEach((e, j) => {
+        if (e.startsWith('pts:')) fetch(`cases/${uid}/anchors_${e.slice(4)}.f32`).then(r => r.arrayBuffer()).then(buf => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(buf), 3)); const p = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xd81e1e, size: 0.011 })); p.visible = false; auxObjs[j] = p; sceneA.add(p); needs = true; });
+        else if (e.startsWith('mesh:')) new THREE.GLTFLoader().load(`cases/${uid}/${e.slice(5)}.glb`, g => { const ms2 = []; g.scene.traverse(o => { if (o.isMesh) ms2.push(o); }); ms2.forEach(o => { o.material = greyMat; o.add(new THREE.Mesh(o.geometry, wireA)); }); g.scene.visible = false; auxObjs[j] = g.scene; sceneA.add(g.scene); needs = true; });
+      });
+    }
+    function renderAux(i) {
+      const e = AUX[i] || '-'; auxObjs.forEach((o, j) => { if (o) o.visible = (j === i); }); if (baseGrey) baseGrey.visible = !e.startsWith('mesh:'); renderer.render(sceneA, camera);
+    }
     function size() {
       const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
       if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) renderer.setSize(w, h, false);
@@ -1283,11 +1282,16 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
     }
     function render() {
       const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = unlit;
+      const NR = AUX ? 2 : 1, vh = Math.floor(h / NR);
+      function texView(k) { if (SPLIT && k === NC) { if (meshS) renderer.render(sceneS, camera); } else { mesh.material = mats[chOff + k]; renderer.render(scene, camera); } }
       if (single) {
-        camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h); if (PTS) { ptsList.forEach((p, j) => { if (p) p.visible = (j === which); }); mesh.material = greyMat; renderer.render(scene, camera); } else if (SPLIT && which === NC) { if (meshS) renderer.render(sceneS, camera); } else { mesh.material = mats[chOff + which]; renderer.render(scene, camera); }
+        camera.aspect = w / vh; camera.updateProjectionMatrix();
+        renderer.setViewport(0, h - vh, w, vh); renderer.setScissor(0, h - vh, w, vh); texView(which);
+        if (AUX) { renderer.setViewport(0, 0, w, vh); renderer.setScissor(0, 0, w, vh); renderAux(which); }
       } else {
-        const NP = NC + (SPLIT ? 1 : 0), vw = Math.floor(w / NP); camera.aspect = vw / h; camera.updateProjectionMatrix();
-        for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, 0, vw, h); renderer.setScissor(i * vw, 0, vw, h); if (PTS) { ptsList.forEach((p, j) => { if (p) p.visible = (j === i); }); mesh.material = greyMat; renderer.render(scene, camera); } else if (SPLIT && i === NC) { if (meshS) renderer.render(sceneS, camera); } else { mesh.material = mats[chOff + i]; renderer.render(scene, camera); } }
+        const NP = NC + (SPLIT ? 1 : 0), vw = Math.floor(w / NP); camera.aspect = vw / vh; camera.updateProjectionMatrix();
+        for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, h - vh, vw, vh); renderer.setScissor(i * vw, h - vh, vw, vh); texView(i); }
+        if (AUX) for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, 0, vw, vh); renderer.setScissor(i * vw, 0, vw, vh); renderAux(i); }
       }
     }
     function loop() { if (!visible) return; controls.update(); render(); requestAnimationFrame(loop); }
