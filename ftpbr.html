@@ -77,7 +77,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <li><strong>切分的收益在推理时就能拿到。</strong>同一个 B，评测网格从 1/8192 换到 1/16384 就涨 0.6 dB；用 1/16384 重训（D）反而低 0.1 dB。</li>
 <li><strong>TRELLIS.2 纹理 VAE 基线明显更好：</strong>同样的点、同样的指标，val32 面积 PSNR 26.80 对 C5VAE_100k_anneal 的 24.63；10 个展示案例的 albedo 渲染 PSNR 平均 32.3 对 27.2（见 3.3b、3.5）。</li>
 <li><strong>续训到 200k（放开坍缩通道的 KL + EMA）：</strong>held-out 63 面积 PSNR 26.09（100k 24.60、100k + 退火 25.12），albedo 26.66，金属度 34.63（超过 TRELLIS.2）；val32 EMA 25.33，第一次超过 const（25.08）。100k 时 64 个 latent 通道只有 20 个在用，放开其余 44 个的 KL 后全部重新启用（信息随后也从仍收 KL 的通道迁移过去）；EMA 在 115k 时就追平了 10k 余弦退火（3.7 节）。</li>
-<li><strong>续训 200k → 300k，KL 和后验采样全部去掉（进行中（252k / 300k 步））：</strong>val32 EMA 从 200k 的 25.33 到 252k 的 25.60（albedo 25.86 → 26.11）；通道消融显示 64 个通道里 7 个承担主干、约 8 个有少量信息、13 个是死的且不会自己复活（3.8 节）。</li>
+<li><strong>续训 200k → 300k，KL 和后验采样全部去掉（进行中（257k / 300k 步））：</strong>val32 EMA 从 200k 的 25.33 到 257k 的 25.63（albedo 25.86 → 26.14）；通道消融显示 64 个通道里 7 个承担主干、约 8 个有少量信息、13 个是死的且不会自己复活（3.8 节）。</li>
 <li><strong>推理时加密锚点（救护车单例，3.9 节）：</strong>同一个模型不重训，锚点从 8192 加到 32768，整体 +2.6 dB、纹理面 +2.7 dB；只在纹理区多放 2048 个锚点，纹理面就 +2.3 dB。latent 数量是推理时的容量旋钮。</li>
 <li><strong>推理时按纹理细分面、锚点不变（3.10 节）：</strong>纹理面只 +1.0 dB，远小于加锚点的 +2.7；两者叠加（32768 锚点 + 均匀 1/65536 切分）全部面 28.44（基线 24.80）。瓶颈在 latent 侧。</li>
 <li><strong>单个 latent 的作用范围（3.11 节）：</strong>attention 和直接贡献都只覆盖锚点周围一小片面，拿掉一个 token 全局最多掉 0.03 dB；latent 的容量靠密度，不靠少数关键 token。</li>
@@ -1038,8 +1038,8 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <p>原计划从 200k EMA 权重再做 10k 余弦退火（作业 37135569）已取消，改为 3.8 节的无 KL 续训。</p>
 <p class="small">最佳 5 通道检查点：tritex_snapshots/roundT_pbr_cont200k_klfree_ema/ckpt_ema_step200000.pt（3.5 节的 C5VAE_200k_EMA 列用的就是它）。</p>
 <h3>3.8 续训 200k → 300k：完全去掉 KL 和后验采样</h3>
-<p><strong>设置：</strong>作业 37145347（2 节点 × 4 卡，accum 2，批量仍为 16 个 mesh；2 天时限后自动续链），从 200k 续训的完整状态（权重 + 优化器动量 + EMA）接着训 100k 步，常数 3e-4，数据与配方不变。一个改动：<code>--deterministic 1</code>，即 KL 权重为 0、训练时直接用 z = μ 解码（不再从后验采样），也不再区分放开 / 保留通道；EMA 0.9999 照旧。动机：3.7 节显示 KL 1e-4 会压制通道、坍缩后没有梯度能恢复；这套配方上之前没有做过 KL = 0 的对照（早期小模型从头训的对照里，KL 1e-4 比确定性 AE 好 1.2 dB，但那是 4 万步以内欠拟合阶段的结果）。进行中（252k / 300k 步）。</p>
-<div class="tablewrap"><table><tr><th></th><th class=n>总计</th><th class=n>albedo</th><th class=n>金属度</th><th class=n>粗糙度</th><th class=n>面 PSNR</th><th class=n>资产中位数</th></tr><tr><td>val32 · 200k 续训 EMA（起点）</td><td class=n>25.33</td><td class=n>25.86</td><td class=n>33.45</td><td class=n>32.52</td><td class=n>25.42</td><td class=n>30.28</td></tr><tr><td>val32 · 252k 无 KL 续训（原始权重）</td><td class=n>25.00</td><td class=n>25.50</td><td class=n>33.48</td><td class=n>32.41</td><td class=n>25.43</td><td class=n>29.91</td></tr><tr><td>val32 · 252k 无 KL 续训 EMA</td><td class=n>25.60</td><td class=n>26.11</td><td class=n>33.94</td><td class=n>32.94</td><td class=n>25.75</td><td class=n>30.62</td></tr><tr><td>val32 增益：252k EMA − 200k EMA</td><td class=n pos>+0.28</td><td class=n pos>+0.25</td><td class=n pos>+0.48</td><td class=n pos>+0.42</td><td class=n pos>+0.32</td><td class=n pos>+0.33</td></tr></table></div>
+<p><strong>设置：</strong>作业 37145347（2 节点 × 4 卡，accum 2，批量仍为 16 个 mesh；2 天时限后自动续链），从 200k 续训的完整状态（权重 + 优化器动量 + EMA）接着训 100k 步，常数 3e-4，数据与配方不变。一个改动：<code>--deterministic 1</code>，即 KL 权重为 0、训练时直接用 z = μ 解码（不再从后验采样），也不再区分放开 / 保留通道；EMA 0.9999 照旧。动机：3.7 节显示 KL 1e-4 会压制通道、坍缩后没有梯度能恢复；这套配方上之前没有做过 KL = 0 的对照（早期小模型从头训的对照里，KL 1e-4 比确定性 AE 好 1.2 dB，但那是 4 万步以内欠拟合阶段的结果）。进行中（257k / 300k 步）。</p>
+<div class="tablewrap"><table><tr><th></th><th class=n>总计</th><th class=n>albedo</th><th class=n>金属度</th><th class=n>粗糙度</th><th class=n>面 PSNR</th><th class=n>资产中位数</th></tr><tr><td>val32 · 200k 续训 EMA（起点）</td><td class=n>25.33</td><td class=n>25.86</td><td class=n>33.45</td><td class=n>32.52</td><td class=n>25.42</td><td class=n>30.28</td></tr><tr><td>val32 · 257k 无 KL 续训（原始权重）</td><td class=n>25.32</td><td class=n>25.88</td><td class=n>33.07</td><td class=n>32.41</td><td class=n>25.44</td><td class=n>29.98</td></tr><tr><td>val32 · 257k 无 KL 续训 EMA</td><td class=n>25.63</td><td class=n>26.14</td><td class=n>34.01</td><td class=n>32.97</td><td class=n>25.79</td><td class=n>30.64</td></tr><tr><td>val32 增益：257k EMA − 200k EMA</td><td class=n pos>+0.30</td><td class=n pos>+0.28</td><td class=n pos>+0.55</td><td class=n pos>+0.45</td><td class=n pos>+0.37</td><td class=n pos>+0.36</td></tr></table></div>
 <div class="figrow"><figure><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="无 KL 续训 val32 总计：原始权重 vs EMA" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">无 KL 续训 val32 总计：原始权重 vs EMA</text>
 <line x1="44" x2="626" y1="237.0" y2="237.0" stroke="var(--grid)"/>
@@ -1056,63 +1056,67 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <text x="38" y="81.6" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">25.75</text>
 <line x1="44" x2="626" y1="46.3" y2="46.3" stroke="var(--grid)"/>
 <text x="38" y="49.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
-<text x="131.3" y="282" text-anchor="middle" fill="var(--fg2)">210k</text>
-<text x="247.7" y="282" text-anchor="middle" fill="var(--fg2)">220k</text>
-<text x="364.1" y="282" text-anchor="middle" fill="var(--fg2)">230k</text>
-<text x="480.5" y="282" text-anchor="middle" fill="var(--fg2)">240k</text>
-<text x="596.9" y="282" text-anchor="middle" fill="var(--fg2)">250k</text>
+<text x="123.4" y="282" text-anchor="middle" fill="var(--fg2)">210k</text>
+<text x="229.2" y="282" text-anchor="middle" fill="var(--fg2)">220k</text>
+<text x="335.0" y="282" text-anchor="middle" fill="var(--fg2)">230k</text>
+<text x="440.8" y="282" text-anchor="middle" fill="var(--fg2)">240k</text>
+<text x="546.6" y="282" text-anchor="middle" fill="var(--fg2)">250k</text>
 <text x="335" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
 <text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">面积 PSNR (dB)</text>
 <line x1="44" x2="626" y1="163.4" y2="163.4" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
 <text x="626" y="159.4" text-anchor="end" fill="var(--fg2)">5 通道 const 25.08</text>
 <line x1="44" x2="626" y1="131.8" y2="131.8" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
 <text x="626" y="127.8" text-anchor="end" fill="var(--fg2)">200k 续训 EMA 25.33</text>
-<polyline points="44.0,176.3 73.1,201.9 102.2,188.1 131.3,188.4 160.4,202.3 189.5,169.8 218.6,159.6 247.7,159.2 276.8,147.3 305.9,217.0 335.0,135.6 364.1,156.8 393.2,194.1 422.3,135.4 451.4,210.1 480.5,161.8 509.6,148.1 538.7,150.7 567.8,143.0 596.9,154.4 626.0,173.4" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="44.0,176.3 70.5,201.9 96.9,188.1 123.4,188.4 149.8,202.3 176.3,169.8 202.7,159.6 229.2,159.2 255.6,147.3 282.1,217.0 308.5,135.6 335.0,156.8 361.5,194.1 387.9,135.4 414.4,210.1 440.8,161.8 467.3,148.1 493.7,150.7 520.2,143.0 546.6,154.4 573.1,173.4 599.5,144.3 626.0,132.4" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="44.0" cy="176.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 202.5k · 24.98 dB</title></circle>
-<circle cx="73.1" cy="201.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 205k · 24.78 dB</title></circle>
-<circle cx="102.2" cy="188.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 207.5k · 24.88 dB</title></circle>
-<circle cx="131.3" cy="188.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 210k · 24.88 dB</title></circle>
-<circle cx="160.4" cy="202.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 212.5k · 24.77 dB</title></circle>
-<circle cx="189.5" cy="169.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 215k · 25.03 dB</title></circle>
-<circle cx="218.6" cy="159.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 217.5k · 25.11 dB</title></circle>
-<circle cx="247.7" cy="159.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 220k · 25.11 dB</title></circle>
-<circle cx="276.8" cy="147.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 222.5k · 25.21 dB</title></circle>
-<circle cx="305.9" cy="217.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 225k · 24.66 dB</title></circle>
-<circle cx="335.0" cy="135.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 227.5k · 25.30 dB</title></circle>
-<circle cx="364.1" cy="156.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 230k · 25.13 dB</title></circle>
-<circle cx="393.2" cy="194.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 232.5k · 24.84 dB</title></circle>
-<circle cx="422.3" cy="135.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 235k · 25.30 dB</title></circle>
-<circle cx="451.4" cy="210.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 237.5k · 24.71 dB</title></circle>
-<circle cx="480.5" cy="161.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 240k · 25.09 dB</title></circle>
-<circle cx="509.6" cy="148.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 242.5k · 25.20 dB</title></circle>
-<circle cx="538.7" cy="150.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 245k · 25.18 dB</title></circle>
-<circle cx="567.8" cy="143.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 247.5k · 25.24 dB</title></circle>
-<circle cx="596.9" cy="154.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 250k · 25.15 dB</title></circle>
-<circle cx="626.0" cy="173.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 252.5k · 25.00 dB</title></circle>
-<text x="620.0" y="165.4" text-anchor="end" fill="var(--s4)" font-weight="600">原始权重 25.00</text>
-<polyline points="44.0,132.0 73.1,129.4 102.2,126.0 131.3,124.3 160.4,122.4 189.5,121.4 218.6,118.7 247.7,116.1 276.8,114.5 305.9,114.9 335.0,114.9 364.1,110.2 393.2,109.3 422.3,107.9 451.4,103.0 480.5,102.8 509.6,105.5 538.7,106.8 567.8,104.3 596.9,102.8 626.0,96.8" fill="none" stroke="var(--k)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="70.5" cy="201.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 205k · 24.78 dB</title></circle>
+<circle cx="96.9" cy="188.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 207.5k · 24.88 dB</title></circle>
+<circle cx="123.4" cy="188.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 210k · 24.88 dB</title></circle>
+<circle cx="149.8" cy="202.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 212.5k · 24.77 dB</title></circle>
+<circle cx="176.3" cy="169.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 215k · 25.03 dB</title></circle>
+<circle cx="202.7" cy="159.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 217.5k · 25.11 dB</title></circle>
+<circle cx="229.2" cy="159.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 220k · 25.11 dB</title></circle>
+<circle cx="255.6" cy="147.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 222.5k · 25.21 dB</title></circle>
+<circle cx="282.1" cy="217.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 225k · 24.66 dB</title></circle>
+<circle cx="308.5" cy="135.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 227.5k · 25.30 dB</title></circle>
+<circle cx="335.0" cy="156.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 230k · 25.13 dB</title></circle>
+<circle cx="361.5" cy="194.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 232.5k · 24.84 dB</title></circle>
+<circle cx="387.9" cy="135.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 235k · 25.30 dB</title></circle>
+<circle cx="414.4" cy="210.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 237.5k · 24.71 dB</title></circle>
+<circle cx="440.8" cy="161.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 240k · 25.09 dB</title></circle>
+<circle cx="467.3" cy="148.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 242.5k · 25.20 dB</title></circle>
+<circle cx="493.7" cy="150.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 245k · 25.18 dB</title></circle>
+<circle cx="520.2" cy="143.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 247.5k · 25.24 dB</title></circle>
+<circle cx="546.6" cy="154.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 250k · 25.15 dB</title></circle>
+<circle cx="573.1" cy="173.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 252.5k · 25.00 dB</title></circle>
+<circle cx="599.5" cy="144.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 255k · 25.23 dB</title></circle>
+<circle cx="626.0" cy="132.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 257.5k · 25.32 dB</title></circle>
+<text x="620.0" y="124.4" text-anchor="end" fill="var(--s4)" font-weight="600">原始权重 25.32</text>
+<polyline points="44.0,132.0 70.5,129.4 96.9,126.0 123.4,124.3 149.8,122.4 176.3,121.4 202.7,118.7 229.2,116.1 255.6,114.5 282.1,114.9 308.5,114.9 335.0,110.2 361.5,109.3 387.9,107.9 414.4,103.0 440.8,102.8 467.3,105.5 493.7,106.8 520.2,104.3 546.6,102.8 573.1,96.8 599.5,97.9 626.0,93.2" fill="none" stroke="var(--k)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="44.0" cy="132.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 202.5k · 25.33 dB</title></circle>
-<circle cx="73.1" cy="129.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 205k · 25.35 dB</title></circle>
-<circle cx="102.2" cy="126.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 207.5k · 25.37 dB</title></circle>
-<circle cx="131.3" cy="124.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 210k · 25.39 dB</title></circle>
-<circle cx="160.4" cy="122.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 212.5k · 25.40 dB</title></circle>
-<circle cx="189.5" cy="121.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 215k · 25.41 dB</title></circle>
-<circle cx="218.6" cy="118.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 217.5k · 25.43 dB</title></circle>
-<circle cx="247.7" cy="116.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 220k · 25.45 dB</title></circle>
-<circle cx="276.8" cy="114.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 222.5k · 25.46 dB</title></circle>
-<circle cx="305.9" cy="114.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 225k · 25.46 dB</title></circle>
-<circle cx="335.0" cy="114.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 227.5k · 25.46 dB</title></circle>
-<circle cx="364.1" cy="110.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 230k · 25.50 dB</title></circle>
-<circle cx="393.2" cy="109.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 232.5k · 25.50 dB</title></circle>
-<circle cx="422.3" cy="107.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 235k · 25.52 dB</title></circle>
-<circle cx="451.4" cy="103.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 237.5k · 25.55 dB</title></circle>
-<circle cx="480.5" cy="102.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 240k · 25.56 dB</title></circle>
-<circle cx="509.6" cy="105.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 242.5k · 25.53 dB</title></circle>
-<circle cx="538.7" cy="106.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 245k · 25.52 dB</title></circle>
-<circle cx="567.8" cy="104.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 247.5k · 25.54 dB</title></circle>
-<circle cx="596.9" cy="102.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 250k · 25.56 dB</title></circle>
-<circle cx="626.0" cy="96.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 252.5k · 25.60 dB</title></circle>
-<text x="620.0" y="88.8" text-anchor="end" fill="var(--k)" font-weight="600">EMA 0.9999 25.60</text>
+<circle cx="70.5" cy="129.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 205k · 25.35 dB</title></circle>
+<circle cx="96.9" cy="126.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 207.5k · 25.37 dB</title></circle>
+<circle cx="123.4" cy="124.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 210k · 25.39 dB</title></circle>
+<circle cx="149.8" cy="122.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 212.5k · 25.40 dB</title></circle>
+<circle cx="176.3" cy="121.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 215k · 25.41 dB</title></circle>
+<circle cx="202.7" cy="118.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 217.5k · 25.43 dB</title></circle>
+<circle cx="229.2" cy="116.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 220k · 25.45 dB</title></circle>
+<circle cx="255.6" cy="114.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 222.5k · 25.46 dB</title></circle>
+<circle cx="282.1" cy="114.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 225k · 25.46 dB</title></circle>
+<circle cx="308.5" cy="114.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 227.5k · 25.46 dB</title></circle>
+<circle cx="335.0" cy="110.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 230k · 25.50 dB</title></circle>
+<circle cx="361.5" cy="109.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 232.5k · 25.50 dB</title></circle>
+<circle cx="387.9" cy="107.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 235k · 25.52 dB</title></circle>
+<circle cx="414.4" cy="103.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 237.5k · 25.55 dB</title></circle>
+<circle cx="440.8" cy="102.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 240k · 25.56 dB</title></circle>
+<circle cx="467.3" cy="105.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 242.5k · 25.53 dB</title></circle>
+<circle cx="493.7" cy="106.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 245k · 25.52 dB</title></circle>
+<circle cx="520.2" cy="104.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 247.5k · 25.54 dB</title></circle>
+<circle cx="546.6" cy="102.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 250k · 25.56 dB</title></circle>
+<circle cx="573.1" cy="96.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 252.5k · 25.60 dB</title></circle>
+<circle cx="599.5" cy="97.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 255k · 25.59 dB</title></circle>
+<circle cx="626.0" cy="93.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 257.5k · 25.63 dB</title></circle>
+<text x="620.0" y="85.2" text-anchor="end" fill="var(--k)" font-weight="600">EMA 0.9999 25.63</text>
 </svg><div class="legend"><span style="--c:var(--s4)">原始权重</span><span style="--c:var(--k)">EMA 0.9999</span><span class="dash">5 通道 const / 200k 续训 EMA</span></div></figure><figure><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="无 KL 续训 val32 albedo：原始权重 vs EMA" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">无 KL 续训 val32 albedo：原始权重 vs EMA</text>
 <line x1="44" x2="626" y1="249.7" y2="249.7" stroke="var(--grid)"/>
@@ -1129,63 +1133,67 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <text x="38" y="83.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26.25</text>
 <line x1="44" x2="626" y1="46.3" y2="46.3" stroke="var(--grid)"/>
 <text x="38" y="49.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26.5</text>
-<text x="131.3" y="282" text-anchor="middle" fill="var(--fg2)">210k</text>
-<text x="247.7" y="282" text-anchor="middle" fill="var(--fg2)">220k</text>
-<text x="364.1" y="282" text-anchor="middle" fill="var(--fg2)">230k</text>
-<text x="480.5" y="282" text-anchor="middle" fill="var(--fg2)">240k</text>
-<text x="596.9" y="282" text-anchor="middle" fill="var(--fg2)">250k</text>
+<text x="123.4" y="282" text-anchor="middle" fill="var(--fg2)">210k</text>
+<text x="229.2" y="282" text-anchor="middle" fill="var(--fg2)">220k</text>
+<text x="335.0" y="282" text-anchor="middle" fill="var(--fg2)">230k</text>
+<text x="440.8" y="282" text-anchor="middle" fill="var(--fg2)">240k</text>
+<text x="546.6" y="282" text-anchor="middle" fill="var(--fg2)">250k</text>
 <text x="335" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
 <text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">面积 PSNR (dB)</text>
 <line x1="44" x2="626" y1="133.4" y2="133.4" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
 <text x="626" y="129.4" text-anchor="end" fill="var(--fg2)">200k 续训 EMA 25.86</text>
-<polyline points="44.0,181.7 73.1,187.7 102.2,186.6 131.3,192.4 160.4,211.6 189.5,170.1 218.6,159.3 247.7,157.2 276.8,149.4 305.9,221.7 335.0,134.9 364.1,159.4 393.2,197.7 422.3,136.5 451.4,206.9 480.5,164.7 509.6,150.3 538.7,141.8 567.8,144.8 596.9,161.0 626.0,182.4" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="44.0,181.7 70.5,187.7 96.9,186.6 123.4,192.4 149.8,211.6 176.3,170.1 202.7,159.3 229.2,157.2 255.6,149.4 282.1,221.7 308.5,134.9 335.0,159.4 361.5,197.7 387.9,136.5 414.4,206.9 440.8,164.7 467.3,150.3 493.7,141.8 520.2,144.8 546.6,161.0 573.1,182.4 599.5,149.2 626.0,129.7" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="44.0" cy="181.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 202.5k · 25.50 dB</title></circle>
-<circle cx="73.1" cy="187.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 205k · 25.46 dB</title></circle>
-<circle cx="102.2" cy="186.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 207.5k · 25.47 dB</title></circle>
-<circle cx="131.3" cy="192.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 210k · 25.42 dB</title></circle>
-<circle cx="160.4" cy="211.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 212.5k · 25.28 dB</title></circle>
-<circle cx="189.5" cy="170.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 215k · 25.59 dB</title></circle>
-<circle cx="218.6" cy="159.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 217.5k · 25.67 dB</title></circle>
-<circle cx="247.7" cy="157.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 220k · 25.68 dB</title></circle>
-<circle cx="276.8" cy="149.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 222.5k · 25.74 dB</title></circle>
-<circle cx="305.9" cy="221.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 225k · 25.21 dB</title></circle>
-<circle cx="335.0" cy="134.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 227.5k · 25.85 dB</title></circle>
-<circle cx="364.1" cy="159.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 230k · 25.67 dB</title></circle>
-<circle cx="393.2" cy="197.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 232.5k · 25.38 dB</title></circle>
-<circle cx="422.3" cy="136.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 235k · 25.83 dB</title></circle>
-<circle cx="451.4" cy="206.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 237.5k · 25.32 dB</title></circle>
-<circle cx="480.5" cy="164.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 240k · 25.63 dB</title></circle>
-<circle cx="509.6" cy="150.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 242.5k · 25.73 dB</title></circle>
-<circle cx="538.7" cy="141.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 245k · 25.80 dB</title></circle>
-<circle cx="567.8" cy="144.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 247.5k · 25.77 dB</title></circle>
-<circle cx="596.9" cy="161.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 250k · 25.65 dB</title></circle>
-<circle cx="626.0" cy="182.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 252.5k · 25.50 dB</title></circle>
-<text x="620.0" y="174.4" text-anchor="end" fill="var(--s4)" font-weight="600">原始权重 25.50</text>
-<polyline points="44.0,133.9 73.1,131.6 102.2,127.7 131.3,125.5 160.4,124.0 189.5,122.9 218.6,120.5 247.7,117.2 276.8,116.3 305.9,116.6 335.0,117.8 364.1,112.4 393.2,110.9 422.3,110.3 451.4,105.0 480.5,105.4 509.6,108.3 538.7,110.4 567.8,107.7 596.9,106.3 626.0,99.0" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="70.5" cy="187.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 205k · 25.46 dB</title></circle>
+<circle cx="96.9" cy="186.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 207.5k · 25.47 dB</title></circle>
+<circle cx="123.4" cy="192.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 210k · 25.42 dB</title></circle>
+<circle cx="149.8" cy="211.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 212.5k · 25.28 dB</title></circle>
+<circle cx="176.3" cy="170.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 215k · 25.59 dB</title></circle>
+<circle cx="202.7" cy="159.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 217.5k · 25.67 dB</title></circle>
+<circle cx="229.2" cy="157.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 220k · 25.68 dB</title></circle>
+<circle cx="255.6" cy="149.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 222.5k · 25.74 dB</title></circle>
+<circle cx="282.1" cy="221.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 225k · 25.21 dB</title></circle>
+<circle cx="308.5" cy="134.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 227.5k · 25.85 dB</title></circle>
+<circle cx="335.0" cy="159.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 230k · 25.67 dB</title></circle>
+<circle cx="361.5" cy="197.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 232.5k · 25.38 dB</title></circle>
+<circle cx="387.9" cy="136.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 235k · 25.83 dB</title></circle>
+<circle cx="414.4" cy="206.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 237.5k · 25.32 dB</title></circle>
+<circle cx="440.8" cy="164.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 240k · 25.63 dB</title></circle>
+<circle cx="467.3" cy="150.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 242.5k · 25.73 dB</title></circle>
+<circle cx="493.7" cy="141.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 245k · 25.80 dB</title></circle>
+<circle cx="520.2" cy="144.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 247.5k · 25.77 dB</title></circle>
+<circle cx="546.6" cy="161.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 250k · 25.65 dB</title></circle>
+<circle cx="573.1" cy="182.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 252.5k · 25.50 dB</title></circle>
+<circle cx="599.5" cy="149.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 255k · 25.74 dB</title></circle>
+<circle cx="626.0" cy="129.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 257.5k · 25.88 dB</title></circle>
+<text x="620.0" y="121.7" text-anchor="end" fill="var(--s4)" font-weight="600">原始权重 25.88</text>
+<polyline points="44.0,133.9 70.5,131.6 96.9,127.7 123.4,125.5 149.8,124.0 176.3,122.9 202.7,120.5 229.2,117.2 255.6,116.3 282.1,116.6 308.5,117.8 335.0,112.4 361.5,110.9 387.9,110.3 414.4,105.0 440.8,105.4 467.3,108.3 493.7,110.4 520.2,107.7 546.6,106.3 573.1,99.0 599.5,100.6 626.0,95.6" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="44.0" cy="133.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 202.5k · 25.85 dB</title></circle>
-<circle cx="73.1" cy="131.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 205k · 25.87 dB</title></circle>
-<circle cx="102.2" cy="127.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 207.5k · 25.90 dB</title></circle>
-<circle cx="131.3" cy="125.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 210k · 25.92 dB</title></circle>
-<circle cx="160.4" cy="124.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 212.5k · 25.93 dB</title></circle>
-<circle cx="189.5" cy="122.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 215k · 25.94 dB</title></circle>
-<circle cx="218.6" cy="120.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 217.5k · 25.95 dB</title></circle>
-<circle cx="247.7" cy="117.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 220k · 25.98 dB</title></circle>
-<circle cx="276.8" cy="116.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 222.5k · 25.98 dB</title></circle>
-<circle cx="305.9" cy="116.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 225k · 25.98 dB</title></circle>
-<circle cx="335.0" cy="117.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 227.5k · 25.97 dB</title></circle>
-<circle cx="364.1" cy="112.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 230k · 26.01 dB</title></circle>
-<circle cx="393.2" cy="110.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 232.5k · 26.02 dB</title></circle>
-<circle cx="422.3" cy="110.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 235k · 26.03 dB</title></circle>
-<circle cx="451.4" cy="105.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 237.5k · 26.07 dB</title></circle>
-<circle cx="480.5" cy="105.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 240k · 26.06 dB</title></circle>
-<circle cx="509.6" cy="108.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 242.5k · 26.04 dB</title></circle>
-<circle cx="538.7" cy="110.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 245k · 26.03 dB</title></circle>
-<circle cx="567.8" cy="107.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 247.5k · 26.05 dB</title></circle>
-<circle cx="596.9" cy="106.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 250k · 26.06 dB</title></circle>
-<circle cx="626.0" cy="99.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 252.5k · 26.11 dB</title></circle>
-<text x="620.0" y="91.0" text-anchor="end" fill="var(--s1)" font-weight="600">EMA 0.9999 26.11</text>
+<circle cx="70.5" cy="131.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 205k · 25.87 dB</title></circle>
+<circle cx="96.9" cy="127.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 207.5k · 25.90 dB</title></circle>
+<circle cx="123.4" cy="125.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 210k · 25.92 dB</title></circle>
+<circle cx="149.8" cy="124.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 212.5k · 25.93 dB</title></circle>
+<circle cx="176.3" cy="122.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 215k · 25.94 dB</title></circle>
+<circle cx="202.7" cy="120.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 217.5k · 25.95 dB</title></circle>
+<circle cx="229.2" cy="117.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 220k · 25.98 dB</title></circle>
+<circle cx="255.6" cy="116.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 222.5k · 25.98 dB</title></circle>
+<circle cx="282.1" cy="116.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 225k · 25.98 dB</title></circle>
+<circle cx="308.5" cy="117.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 227.5k · 25.97 dB</title></circle>
+<circle cx="335.0" cy="112.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 230k · 26.01 dB</title></circle>
+<circle cx="361.5" cy="110.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 232.5k · 26.02 dB</title></circle>
+<circle cx="387.9" cy="110.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 235k · 26.03 dB</title></circle>
+<circle cx="414.4" cy="105.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 237.5k · 26.07 dB</title></circle>
+<circle cx="440.8" cy="105.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 240k · 26.06 dB</title></circle>
+<circle cx="467.3" cy="108.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 242.5k · 26.04 dB</title></circle>
+<circle cx="493.7" cy="110.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 245k · 26.03 dB</title></circle>
+<circle cx="520.2" cy="107.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 247.5k · 26.05 dB</title></circle>
+<circle cx="546.6" cy="106.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 250k · 26.06 dB</title></circle>
+<circle cx="573.1" cy="99.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 252.5k · 26.11 dB</title></circle>
+<circle cx="599.5" cy="100.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 255k · 26.10 dB</title></circle>
+<circle cx="626.0" cy="95.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 257.5k · 26.14 dB</title></circle>
+<text x="620.0" y="87.6" text-anchor="end" fill="var(--s1)" font-weight="600">EMA 0.9999 26.14</text>
 </svg><div class="legend"><span style="--c:var(--s4)">原始权重</span><span style="--c:var(--s1)">EMA 0.9999</span><span class="dash">200k 续训 EMA</span></div></figure></div>
-<p class="small">val32，1/16384 网格。去掉采样噪声后原始权重的评测波动比 3.7 节更大（±0.3 dB）；EMA 单调上升，252k 时比 200k 起点高 0.28 dB（3.7 节同样步数内 EMA 涨 0.56 dB，但起点不同，不能直接比）。</p>
+<p class="small">val32，1/16384 网格。去掉采样噪声后原始权重的评测波动比 3.7 节更大（±0.3 dB）；EMA 单调上升，257k 时比 200k 起点高 0.30 dB（3.7 节同样步数内 EMA 涨 0.63 dB，但起点不同，不能直接比）。</p>
 <h4>latent 通道消融：每个通道都携带信息吗？</h4>
 <p>推理时把一组通道在 8192 个 latent 之间随机打乱（保留边缘分布、切断与位置的对应）、置零或换成均值，看 val32 的下降；再对 64 个通道逐个打乱（232k 在全部 32 个 mesh 上，200k 当时只用 12 个，绝对掉幅不可直接比较）。“放开 / 保留”仍指 3.7 节的分组。</p>
 <div class="tablewrap"><table><tr><th>val32 面积 PSNR (dB)</th><th class=n>200k 续训 EMA</th><th class=n>232k 无 KL 续训 EMA</th></tr><tr><td>不打乱（基线）</td><td class=n>25.33</td><td class=n>25.50</td></tr><tr><td>打乱放开的 44 个</td><td class=n>19.07</td><td class=n>18.90</td></tr><tr><td>置零放开的 44 个</td><td class=n>17.89</td><td class=n>18.17</td></tr><tr><td>放开的 44 个换成各自均值</td><td class=n>20.23</td><td class=n>20.11</td></tr><tr><td>打乱保留的 20 个</td><td class=n>14.36</td><td class=n>14.39</td></tr><tr><td>置零保留的 20 个</td><td class=n>10.89</td><td class=n>10.30</td></tr><tr><td>打乱全部 64 个</td><td class=n>12.22</td><td class=n>12.17</td></tr></table></div>
@@ -1230,17 +1238,17 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <li><strong>看图：</strong>固定锚点时，细分后车牌上出现了隐约的笔画、徽章的环更完整，但数字仍不可读；32768 锚点 + 细分之后徽章的环和中心图案基本成形，车牌能看出数字的位置和深浅，仍达不到可读。要读出文字，大概需要训练时就让模型在这种密度下工作（锚点和切分一起加），而不是只在推理时改。</li>
 </ul>
 <figure class="imgfig"><img src="ftpbr/subdiv_crops.jpg" alt="切分对比裁剪" loading="lazy"><figcaption>车牌（上两行）和徽章（下两行）：第 1、3 行固定 8192 锚点，第 2、4 行均匀 32768 锚点；列为 GT / 现有切分 / 纹理子面再切到 1/65536 / 再切到 1/262144 / 全部均匀切到 1/65536。</figcaption></figure>
-<h4>交互式 3D 对比（只看 albedo）</h4><p>各列共享相机：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536；上排为纹理，下排为该列推理时用的网格（线框）。</p>
-<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_anc_base_alb,recon_sub262_base_alb,recon_anc_sfps32768_alb,recon_sub262_sfps32768_alb,recon_subu65_sfps32768_alb" data-aux="mesh:geom,mesh:geom_split,mesh:geom_split_tex262144,mesh:geom_split,mesh:geom_split_tex262144,mesh:geom_split_uni65536">
+<h4>交互式 3D 对比（只看 albedo）</h4><p>各列共享相机：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 8192 · 均匀 1/65536 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536；上排为纹理，下排为该列推理时用的网格（线框）。</p>
+<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_anc_base_alb,recon_sub262_base_alb,recon_subu65_base_alb,recon_anc_sfps32768_alb,recon_sub262_sfps32768_alb,recon_subu65_sfps32768_alb" data-aux="mesh:geom,mesh:geom_split,mesh:geom_split_tex262144,mesh:geom_split_uni65536,mesh:geom_split,mesh:geom_split_tex262144,mesh:geom_split_uni65536">
 <div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">48,270 面 · held-out</span></div>
 </div>
-<div class="canvaswrap" style="aspect-ratio:6/2.6"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
-<div class="vlabels" style="grid-template-columns:repeat(6,1fr)"><span>GT</span><span>8192 · 1/16384</span><span>8192 · 纹理区→1/262144</span><span>32768 · 1/16384</span><span>32768 · 纹理区→1/262144</span><span>32768 · 均匀 1/65536</span></div>
+<div class="canvaswrap" style="aspect-ratio:7/2.6"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT</span><span>8192 · 1/16384</span><span>8192 · 纹理区→1/262144</span><span>8192 · 均匀 1/65536</span><span>32768 · 1/16384</span><span>32768 · 纹理区→1/262144</span><span>32768 · 均匀 1/65536</span></div>
 <div class="ctrl"><label><input type="checkbox" class="spin" checked> 自动旋转</label><label><input type="checkbox" class="single"> 单视图</label><label><input type="checkbox" class="wire"> 显示网格</label>
-<span class="singlesel" hidden><label><input type="radio" name="sub-994aec41" value="0" checked> GT</label><label><input type="radio" name="sub-994aec41" value="1"> 8192 · 1/16384</label><label><input type="radio" name="sub-994aec41" value="2"> 8192 · 纹理区→1/262144</label><label><input type="radio" name="sub-994aec41" value="3"> 32768 · 1/16384</label><label><input type="radio" name="sub-994aec41" value="4"> 32768 · 纹理区→1/262144</label><label><input type="radio" name="sub-994aec41" value="5"> 32768 · 均匀 1/65536</label></span>
+<span class="singlesel" hidden><label><input type="radio" name="sub-994aec41" value="0" checked> GT</label><label><input type="radio" name="sub-994aec41" value="1"> 8192 · 1/16384</label><label><input type="radio" name="sub-994aec41" value="2"> 8192 · 纹理区→1/262144</label><label><input type="radio" name="sub-994aec41" value="3"> 8192 · 均匀 1/65536</label><label><input type="radio" name="sub-994aec41" value="4"> 32768 · 1/16384</label><label><input type="radio" name="sub-994aec41" value="5"> 32768 · 纹理区→1/262144</label><label><input type="radio" name="sub-994aec41" value="6"> 32768 · 均匀 1/65536</label></span>
 <button type="button" class="reset">重置视角</button></div>
-<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536</span><button type="button" class="texzoom">放大</button></div>
-<div class="texpair" style="grid-template-columns:repeat(6,minmax(0,1fr));max-width:none"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="GT" loading="lazy"></a><figcaption>GT</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" alt="8192 · 1/16384" loading="lazy"></a><figcaption>8192 · 1/16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_base_alb_disp.jpg" alt="8192 · 纹理区→1/262144" loading="lazy"></a><figcaption>8192 · 纹理区→1/262144</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" alt="32768 · 1/16384" loading="lazy"></a><figcaption>32768 · 1/16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_sfps32768_alb_disp.jpg" alt="32768 · 纹理区→1/262144" loading="lazy"></a><figcaption>32768 · 纹理区→1/262144</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_sfps32768_alb_disp.jpg" alt="32768 · 均匀 1/65536" loading="lazy"></a><figcaption>32768 · 均匀 1/65536</figcaption></figure></div></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：GT / 8192 · 1/16384 / 8192 · 纹理区→1/262144 / 8192 · 均匀 1/65536 / 32768 · 1/16384 / 32768 · 纹理区→1/262144 / 32768 · 均匀 1/65536</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="GT" loading="lazy"></a><figcaption>GT</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_base_alb_disp.jpg" alt="8192 · 1/16384" loading="lazy"></a><figcaption>8192 · 1/16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_base_alb_disp.jpg" alt="8192 · 纹理区→1/262144" loading="lazy"></a><figcaption>8192 · 纹理区→1/262144</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_base_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_base_alb_disp.jpg" alt="8192 · 均匀 1/65536" loading="lazy"></a><figcaption>8192 · 均匀 1/65536</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_anc_sfps32768_alb_disp.jpg" alt="32768 · 1/16384" loading="lazy"></a><figcaption>32768 · 1/16384</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_sub262_sfps32768_alb_disp.jpg" alt="32768 · 纹理区→1/262144" loading="lazy"></a><figcaption>32768 · 纹理区→1/262144</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_sfps32768_alb_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_subu65_sfps32768_alb_disp.jpg" alt="32768 · 均匀 1/65536" loading="lazy"></a><figcaption>32768 · 均匀 1/65536</figcaption></figure></div></div>
 </div>
 <p class="small">脚本：tritex/dataset.py <code>split_tex_frac / split_tex_std</code>（<code>split_faces_once</code>），scripts/anchor_density_test.py <code>--tex_frac</code>；结果目录 outputs/viewer/anchor_density_994aec41_tex65536 / _tex262144 / _uni65536。</p>
 <h3>3.11 单个 latent token 在 mesh 上的作用范围</h3>
