@@ -1254,14 +1254,6 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 </ul>
 <h4>交互式 3D：选一个 token，看它的 attention 和 knock-out 影响</h4>
 <p>各列共享相机，绿色 = 该 token 的锚点位置（中心实心点半径 0.015，外圈半径 0.045–0.06，按 3D 距离逐纹素标记）。attention 按该 token 的最大值归一（inferno 色标）；误差增量按两种 knock-out 的共同尺度归一（viridis 色标）。</p>
-<p><strong>三张图各是什么：</strong></p>
-<ul>
-<li><strong>对该 token 的 attention：</strong>正常解码一次，在解码器 cross-attention 处截获 softmax 权重。每个面有自己的 query，对 8192 个 latent 各分一个权重、总和为 1；这列画的是每个面分给这个 token 的那一份（8 头平均），再除以该 token 在全 mesh 上的峰值、开 0.5 次方。它只表示“读取强度”，不表示输出改变了多少；显示成黑色表示权重不到峰值的 1%。</li>
-<li><strong>误差增量：整链路：</strong>把这个 token 的 64 维 latent 换成所有 latent 的均值，整个解码器从头跑（12 层 latent 自注意力、cross-attention、每面 MLP 全部重算），对每个面算 91 个格点上的 albedo 均方误差，减去未改动时的误差，只保留增大的部分。这是“真正拿掉这个 token 后哪里的纹理变差了”，包含它经自注意力传给其他 latent 的间接影响。</li>
-<li><strong>误差增量：只屏蔽读出：</strong>latent 一个都不改、自注意力照常跑，只在 cross-attention 里把这个 token 的 key 屏蔽掉（softmax 时排除它，权重重新分给其余 latent），再算同样的每面误差增量。这是“只切断直接读取路径”的效果，把间接影响排除在外。</li>
-</ul>
-<p><strong>怎么读：</strong>attention 亮但误差增量暗 = 面读了它，但换成均值后影响不大，邻近 token 能补上（内容冗余）；整链路有、只屏蔽读出没有 = 该处变化是经其他 latent 间接传过去的。</p>
-<p><strong>为什么 attention 图只有锚点附近是亮的：</strong>解码器 cross-attention 的 logit 里加了按 3D 距离的高斯先验 −|Δp|²/σ²，σ 每个头可学习（初始 0.025）。237k EMA 权重里 8 个头学到的 σ 为 0.002 / 0.001 / 0.001 / 0.003 / 0.002 / 0.002 / 0.017 / 0.142（模型长轴为 1）：6 个头在距离 0.01 处 logit 就被压掉 10–100，等于只看最近的几个锚点，再加上 RoPE-6D / 谱 RoPE 的位置相关性，面读 latent 时基本只读近邻；只有 σ = 0.14 的那个头看得远，8 头平均后被淹没。所以这不是“该 token 对别处没有贡献”：它的信息先经 12 层 latent 自注意力（那里很多头的 σ 在 0.3–1.5，接近全局）混进其他 latent，再被远处的面读到，这部分正是“整链路”列相对“只屏蔽读出”列多出来的那约 3.5 万个面的微小变化，只是总量极小（整 mesh PSNR 只掉 0.00–0.02 dB），按峰值归一后同样显示为黑。</p>
 <div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,infl_all_dec,infl_2775_dec,infl_2775_att,infl_2775_dwhole,infl_2775_dread,gt_dil,infl_all_dec,infl_6506_dec,infl_6506_att,infl_6506_dwhole,infl_6506_dread,gt_dil,infl_all_dec,infl_2596_dec,infl_2596_att,infl_2596_dwhole,infl_2596_dread,gt_dil,infl_all_dec,infl_1433_dec,infl_1433_att,infl_1433_dwhole,infl_1433_dread" data-ncol="6">
 <div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">8192 个 latent · 237k 无 KL 续训 EMA</span></div></div>
 <div class="canvaswrap" style="aspect-ratio:6/1.35"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480" hidden><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa latent 影响 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
@@ -1270,6 +1262,14 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <span class="singlesel" hidden><label><input type="radio" name="pb-infl-994aec41" value="0" checked> GT</label><label><input type="radio" name="pb-infl-994aec41" value="1"> 完整解码</label><label><input type="radio" name="pb-infl-994aec41" value="2"> 去掉该 token 的解码</label><label><input type="radio" name="pb-infl-994aec41" value="3"> 对该 token 的 attention</label><label><input type="radio" name="pb-infl-994aec41" value="4"> 误差增量：整链路</label><label><input type="radio" name="pb-infl-994aec41" value="5"> 误差增量：只屏蔽读出</label></span>
 <button type="button" class="reset">重置视角</button></div>
 </div>
+<p><strong>三张图各是什么：</strong></p>
+<ul>
+<li><strong>对该 token 的 attention：</strong>正常解码一次，在解码器 cross-attention 处截获 softmax 权重。每个面有自己的 query，对 8192 个 latent 各分一个权重、总和为 1；这列画的是每个面分给这个 token 的那一份（8 头平均），再除以该 token 在全 mesh 上的峰值、开 0.5 次方。它只表示“读取强度”，不表示输出改变了多少；显示成黑色表示权重不到峰值的 1%。</li>
+<li><strong>误差增量：整链路：</strong>把这个 token 的 64 维 latent 换成所有 latent 的均值，整个解码器从头跑（12 层 latent 自注意力、cross-attention、每面 MLP 全部重算），对每个面算 91 个格点上的 albedo 均方误差，减去未改动时的误差，只保留增大的部分。这是“真正拿掉这个 token 后哪里的纹理变差了”，包含它经自注意力传给其他 latent 的间接影响。</li>
+<li><strong>误差增量：只屏蔽读出：</strong>latent 一个都不改、自注意力照常跑，只在 cross-attention 里把这个 token 的 key 屏蔽掉（softmax 时排除它，权重重新分给其余 latent），再算同样的每面误差增量。这是“只切断直接读取路径”的效果，把间接影响排除在外。</li>
+</ul>
+<p><strong>怎么读：</strong>attention 亮但误差增量暗 = 面读了它，但换成均值后影响不大，邻近 token 能补上（内容冗余）；整链路有、只屏蔽读出没有 = 该处变化是经其他 latent 间接传过去的。</p>
+<p><strong>为什么 attention 图只有锚点附近是亮的：</strong>解码器 cross-attention 的 logit 里加了按 3D 距离的高斯先验 −|Δp|²/σ²，σ 每个头可学习（初始 0.025）。237k EMA 权重里 8 个头学到的 σ 为 0.002 / 0.001 / 0.001 / 0.003 / 0.002 / 0.002 / 0.017 / 0.142（模型长轴为 1）：6 个头在距离 0.01 处 logit 就被压掉 10–100，等于只看最近的几个锚点，再加上 RoPE-6D / 谱 RoPE 的位置相关性，面读 latent 时基本只读近邻；只有 σ = 0.14 的那个头看得远，8 头平均后被淹没。所以这不是“该 token 对别处没有贡献”：它的信息先经 12 层 latent 自注意力（那里很多头的 σ 在 0.3–1.5，接近全局）混进其他 latent，再被远处的面读到，这部分正是“整链路”列相对“只屏蔽读出”列多出来的那约 3.5 万个面的微小变化，只是总量极小（整 mesh PSNR 只掉 0.00–0.02 dB），按峰值归一后同样显示为黑。</p>
 
 <p class="small">脚本：scripts/latent_influence_vis.py、scripts/latent_influence_bake.py（3D 视图的贴图）（attention 通过钩住解码端 cross-attention 的 scaled_dot_product_attention 取得）；结果目录 outputs/viewer/latent_influence_994aec41/。</p>
 
