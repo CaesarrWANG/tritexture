@@ -81,6 +81,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <li><strong>推理时加密锚点（救护车单例，3.9 节）：</strong>同一个模型不重训，锚点从 8192 加到 32768，整体 +2.6 dB、纹理面 +2.7 dB；只在纹理区多放 2048 个锚点，纹理面就 +2.3 dB。latent 数量是推理时的容量旋钮。</li>
 <li><strong>推理时按纹理细分面、锚点不变（3.10 节）：</strong>纹理面只 +1.0 dB，远小于加锚点的 +2.7；两者叠加（32768 锚点 + 均匀 1/65536 切分）全部面 28.44（基线 24.80）。瓶颈在 latent 侧。</li>
 <li><strong>单个 latent 的作用范围（3.11 节）：</strong>attention 和直接贡献都只覆盖锚点周围一小片面，拿掉一个 token 全局最多掉 0.03 dB；latent 的容量靠密度，不靠少数关键 token。</li>
+<li><strong>KL 权重对照（3.12 节）：</strong>同一配方从头训 20k，KL 3e-5 / 1e-5 / 0 与 1e-4 的 val32 最大差 0.30 dB（评估噪声量级），通道只是不再坍缩（存活 54 / 64 / 64 对 31）而 latent 尺度失控；1e-4 不是瓶颈，坍缩的通道是冗余容量。</li>
 <li><strong>PBR VAE 退火后（100k + 10k）：</strong>val32 总计 24.63，albedo 25.19，金属度 32.38，粗糙度 31.72 dB；比 100k 分别高 0.38 / 0.22 / 1.79 / 1.04 dB。</li>
 <li><strong>PBR VAE 100k：</strong>val32 总计 24.25，albedo 24.97，金属度 30.59，粗糙度 30.68 dB。同一网格上 albedo 比单 albedo 模型低约 0.3 dB，多学两个通道只带来很小的损失。</li>
 </ul>
@@ -731,7 +732,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 </svg><div class="legend"><span style="--c:var(--k)">总计（5 通道）</span><span style="--c:var(--s1)">albedo</span><span style="--c:var(--s2)">金属度</span><span style="--c:var(--s3)">粗糙度</span><span class="dash">5 通道 const</span></div></figure></div>
 <p><strong>结论：</strong>退火在 val32 上带来总计 +0.38、albedo +0.22、金属度 +1.79、粗糙度 +1.04 dB，资产中位数 +0.82。金属度、粗糙度受益最大；albedo 的增益（约 +0.2 val32 / +0.4 held-out）和此前单 albedo 模型 100k → 100k + 退火的幅度相近。3.5 节的定性对比用的就是退火后的模型。</p>
 <h3>3.7 续训 100k → 200k：放开坍缩通道的 KL，并记 EMA</h3>
-<p><strong>起因：KL 权重 1e-4 是否过大？</strong>对 100k 权重做后验诊断（scripts/kl_diag.py，val32）：64 个 latent 通道里只有 20 个在用（每通道 KL &gt; 0.1 nats），其余 44 个坍缩到先验（σ ≈ 1，|μ| &lt; 0.1）；按训练时的噪声采样 z 只损失 0.03 dB。KL 在总 loss 里只占约 5%，按边际成本算打开一个通道只值 0.006 dB，所以当时的判断是 KL 不是瓶颈——但坍缩通道处在平坦区，没有重建梯度把它们拉出来，这一点只有实验能回答。</p>
+<p><strong>起因：KL 权重 1e-4 是否过大？</strong>对 100k 权重做后验诊断（scripts/kl_diag.py，val32）：64 个 latent 通道里只有 20 个在用（每通道 KL &gt; 0.1 nats），其余 44 个坍缩到先验（σ ≈ 1，|μ| &lt; 0.1）；按训练时的噪声采样 z 只损失 0.03 dB。KL 在总 loss 里只占约 5%，按边际成本算打开一个通道只值 0.006 dB，所以当时的判断是 KL 不是瓶颈——但坍缩通道处在平坦区，没有重建梯度把它们拉出来，这一点只有实验能回答（3.7 / 3.8 节是续训的答案，3.12 节是从头训 20k 的 KL 权重对照）。</p>
 <p><strong>设置：</strong>作业 36870997 → 36910831（2 天时限后自动续链），从 100k 的完整状态（权重 + AdamW 动量）真正续训到 200k，常数 3e-4，数据与配方不变。两处改动：（1）<code>kl_free_channels</code>：那 44 个坍缩通道不再计入 KL loss，其余 20 个通道仍是 1e-4；（2）<code>--ema 0.9999</code>：另记一份权重的指数滑动平均（约 1 万步窗口，显存 +0.9 GB），每次评测同时给出原始权重与 EMA 的结果。</p>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="续训阶段 val32 总计：原始权重 vs EMA" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">续训阶段 val32 总计：原始权重 vs EMA</text>
@@ -1348,6 +1349,136 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <p><strong>为什么 attention 图只有锚点附近是亮的：</strong>解码器 cross-attention 的 logit 里加了按 3D 距离的高斯先验 −|Δp|²/σ²，σ 每个头可学习（初始 0.025）。237k EMA 权重里 8 个头学到的 σ 为 0.002 / 0.001 / 0.001 / 0.003 / 0.002 / 0.002 / 0.017 / 0.142（模型长轴为 1）：6 个头在距离 0.01 处 logit 就被压掉 10–100，等于只看最近的几个锚点，再加上 RoPE-6D / 谱 RoPE 的位置相关性，面读 latent 时基本只读近邻；只有 σ = 0.14 的那个头看得远，8 头平均后被淹没。所以这不是“该 token 对别处没有贡献”：它的信息先经 12 层 latent 自注意力（那里很多头的 σ 在 0.3–1.5，接近全局）混进其他 latent，再被远处的面读到，这部分正是“整链路”列相对“只屏蔽读出”列多出来的那约 3.5 万个面的微小变化，只是总量极小（整 mesh PSNR 只掉 0.00–0.02 dB），按峰值归一后同样显示为黑。</p>
 
 <p class="small">脚本：scripts/latent_influence_vis.py、scripts/latent_influence_bake.py（3D 视图的贴图）（attention 通过钩住解码端 cross-attention 的 scaled_dot_product_attention 取得）；结果目录 outputs/viewer/latent_influence_994aec41/。</p>
+<h3>3.12 KL 权重对照：同一配方从头训 20k</h3>
+<p><strong>问题：</strong>3.7 节看到 KL 1e-4 下 64 个 latent 通道到 100k 只剩 20 个在用；按 2.5k 步一存的快照回看，坍缩是一次集体事件：KL 权重在 8k 步预热到满值后，10k–15k 之间有 44 个通道一起掉到先验（其中一部分后来在 KL 还开着时又复活，最终死的是 3.8 节数的 12 个）。之前所有关于 KL 权重的对照都不在这个模型上：roundQ 的表格 latent 模型（4096 锚点、≤8192 面子集、10k 步）里 1e-4 → 1e-3 → 3e-3 → 1e-2 单调掉 0.2–0.8 dB，旧的逐面模型也只说明 KL 要和重建损失的量级匹配。所以这里只往小的方向补：<strong>同一配方从头训 20k 步</strong>（2 节点 × 4 卡、批量 16 个 mesh、KL 8k 步预热、无 EMA、每 2.5k 步评一次），KL 权重 3e-5、1e-5 和 0（训练时 z = μ、不加 KL，纯自编码器作为上限）；1e-4 这一档直接用原始运行的 20k 快照。20k 够用：基线的坍缩在 15k 之前已经完成。</p>
+<div class="tablewrap"><table><tr><th>KL 权重（20k 步，val32）</th><th class=n>总计</th><th class=n>面</th><th class=n>资产中位数</th><th class=n>albedo</th><th class=n>KL nats/通道</th><th class=n>存活通道</th><th class=n>σ 中位</th><th class=n>|μ| rms 范围</th></tr><tr><td>1e-4（原始运行）</td><td class=n>21.87</td><td class=n>21.58</td><td class=n>25.24</td><td class=n>22.60</td><td class=n>1.01</td><td class=n>31 / 64</td><td class=n>0.99</td><td class=n>0.05–2.54</td></tr><tr><td>3e-5</td><td class=n>21.57</td><td class=n>21.37</td><td class=n>25.00</td><td class=n>22.55</td><td class=n>2.39</td><td class=n>54 / 64</td><td class=n>0.16</td><td class=n>0.08–3.17</td></tr><tr><td>1e-5</td><td class=n>21.61</td><td class=n>21.31</td><td class=n>25.04</td><td class=n>22.36</td><td class=n>4.19</td><td class=n>64 / 64</td><td class=n>0.09</td><td class=n>0.78–3.73</td></tr><tr><td>0（z = μ）</td><td class=n>21.79</td><td class=n>21.56</td><td class=n>25.60</td><td class=n>22.60</td><td class=n>—</td><td class=n>64 / 64*</td><td class=n>0.06</td><td class=n>9.82–27.90</td></tr></table></div>
+<div class="figrow"><figure><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="KL 权重对照：val32 总计面积 PSNR（从头训 20k）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">KL 权重对照：val32 总计面积 PSNR（从头训 20k）</text>
+<line x1="44" x2="626" y1="255.2" y2="255.2" stroke="var(--grid)"/>
+<text x="38" y="258.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">19.5</text>
+<line x1="44" x2="626" y1="211.2" y2="211.2" stroke="var(--grid)"/>
+<text x="38" y="214.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="626" y1="167.2" y2="167.2" stroke="var(--grid)"/>
+<text x="38" y="170.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20.5</text>
+<line x1="44" x2="626" y1="123.2" y2="123.2" stroke="var(--grid)"/>
+<text x="38" y="126.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">21</text>
+<line x1="44" x2="626" y1="79.2" y2="79.2" stroke="var(--grid)"/>
+<text x="38" y="82.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">21.5</text>
+<line x1="44" x2="626" y1="35.1" y2="35.1" stroke="var(--grid)"/>
+<text x="38" y="38.6" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<text x="127.1" y="282" text-anchor="middle" fill="var(--fg2)">5k</text>
+<text x="293.4" y="282" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="459.7" y="282" text-anchor="middle" fill="var(--fg2)">15k</text>
+<text x="626.0" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="335" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">面积 PSNR (dB)</text>
+<polyline points="44.0,249.7 127.1,156.4 210.3,142.0 293.4,126.0 376.6,113.1 459.7,77.7 542.9,51.3 626.0,46.3" fill="none" stroke="var(--k)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="249.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 2k · 19.56 dB</title></circle>
+<circle cx="127.1" cy="156.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 5k · 20.62 dB</title></circle>
+<circle cx="210.3" cy="142.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 7k · 20.79 dB</title></circle>
+<circle cx="293.4" cy="126.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 10k · 20.97 dB</title></circle>
+<circle cx="376.6" cy="113.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 12k · 21.11 dB</title></circle>
+<circle cx="459.7" cy="77.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 15k · 21.52 dB</title></circle>
+<circle cx="542.9" cy="51.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 17k · 21.82 dB</title></circle>
+<circle cx="626.0" cy="46.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 20k · 21.87 dB</title></circle>
+<text x="620.0" y="38.3" text-anchor="end" fill="var(--k)" font-weight="600">1e-4（原始运行） 21.87</text>
+<polyline points="44.0,235.4 127.1,236.6 210.3,119.2 293.4,138.7 376.6,84.8 459.7,66.8 542.9,106.7 626.0,72.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="235.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 2k · 19.73 dB</title></circle>
+<circle cx="127.1" cy="236.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 5k · 19.71 dB</title></circle>
+<circle cx="210.3" cy="119.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 7k · 21.04 dB</title></circle>
+<circle cx="293.4" cy="138.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 10k · 20.82 dB</title></circle>
+<circle cx="376.6" cy="84.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 12k · 21.44 dB</title></circle>
+<circle cx="459.7" cy="66.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 15k · 21.64 dB</title></circle>
+<circle cx="542.9" cy="106.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 17k · 21.19 dB</title></circle>
+<circle cx="626.0" cy="72.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 20k · 21.57 dB</title></circle>
+<text x="620.0" y="64.9" text-anchor="end" fill="var(--s1)" font-weight="600">3e-5 21.57</text>
+<polyline points="44.0,206.6 127.1,212.3 210.3,135.0 293.4,130.1 376.6,100.5 459.7,60.9 542.9,78.9 626.0,69.5" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="206.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 2k · 20.05 dB</title></circle>
+<circle cx="127.1" cy="212.3" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 5k · 19.99 dB</title></circle>
+<circle cx="210.3" cy="135.0" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 7k · 20.87 dB</title></circle>
+<circle cx="293.4" cy="130.1" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 10k · 20.92 dB</title></circle>
+<circle cx="376.6" cy="100.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 12k · 21.26 dB</title></circle>
+<circle cx="459.7" cy="60.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 15k · 21.71 dB</title></circle>
+<circle cx="542.9" cy="78.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 17k · 21.50 dB</title></circle>
+<circle cx="626.0" cy="69.5" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 20k · 21.61 dB</title></circle>
+<text x="620.0" y="61.5" text-anchor="end" fill="var(--s2)" font-weight="600">1e-5 21.61</text>
+<polyline points="44.0,247.1 127.1,145.8 210.3,132.3 293.4,117.5 376.6,97.0 459.7,60.5 542.9,98.8 626.0,53.7" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="247.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 2k · 19.59 dB</title></circle>
+<circle cx="127.1" cy="145.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 5k · 20.74 dB</title></circle>
+<circle cx="210.3" cy="132.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 7k · 20.90 dB</title></circle>
+<circle cx="293.4" cy="117.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 10k · 21.06 dB</title></circle>
+<circle cx="376.6" cy="97.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 12k · 21.30 dB</title></circle>
+<circle cx="459.7" cy="60.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 15k · 21.71 dB</title></circle>
+<circle cx="542.9" cy="98.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 17k · 21.28 dB</title></circle>
+<circle cx="626.0" cy="53.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 20k · 21.79 dB</title></circle>
+<text x="620.0" y="45.7" text-anchor="end" fill="var(--s4)" font-weight="600">0（z = μ） 21.79</text>
+</svg><div class="legend"><span style="--c:var(--k)">1e-4（原始运行）</span><span style="--c:var(--s1)">3e-5</span><span style="--c:var(--s2)">1e-5</span><span style="--c:var(--s4)">0（z = μ）</span></div></figure><figure><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="KL 权重对照：val32 albedo 面积 PSNR" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">KL 权重对照：val32 albedo 面积 PSNR</text>
+<line x1="44" x2="626" y1="263.2" y2="263.2" stroke="var(--grid)"/>
+<text x="38" y="266.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20.5</text>
+<line x1="44" x2="626" y1="211.6" y2="211.6" stroke="var(--grid)"/>
+<text x="38" y="215.1" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">21</text>
+<line x1="44" x2="626" y1="160.0" y2="160.0" stroke="var(--grid)"/>
+<text x="38" y="163.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">21.5</text>
+<line x1="44" x2="626" y1="108.3" y2="108.3" stroke="var(--grid)"/>
+<text x="38" y="111.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="626" y1="56.7" y2="56.7" stroke="var(--grid)"/>
+<text x="38" y="60.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22.5</text>
+<text x="127.1" y="282" text-anchor="middle" fill="var(--fg2)">5k</text>
+<text x="293.4" y="282" text-anchor="middle" fill="var(--fg2)">10k</text>
+<text x="459.7" y="282" text-anchor="middle" fill="var(--fg2)">15k</text>
+<text x="626.0" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="335" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">面积 PSNR (dB)</text>
+<polyline points="44.0,237.6 127.1,160.4 210.3,156.6 293.4,112.8 376.6,128.0 459.7,91.5 542.9,59.2 626.0,46.8" fill="none" stroke="var(--k)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="237.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 2k · 20.75 dB</title></circle>
+<circle cx="127.1" cy="160.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 5k · 21.50 dB</title></circle>
+<circle cx="210.3" cy="156.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 7k · 21.53 dB</title></circle>
+<circle cx="293.4" cy="112.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 10k · 21.96 dB</title></circle>
+<circle cx="376.6" cy="128.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 12k · 21.81 dB</title></circle>
+<circle cx="459.7" cy="91.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 15k · 22.16 dB</title></circle>
+<circle cx="542.9" cy="59.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 17k · 22.48 dB</title></circle>
+<circle cx="626.0" cy="46.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>1e-4（原始运行） · 20k · 22.60 dB</title></circle>
+<text x="620.0" y="38.8" text-anchor="end" fill="var(--k)" font-weight="600">1e-4（原始运行） 22.60</text>
+<polyline points="44.0,233.0 127.1,249.7 210.3,139.0 293.4,151.0 376.6,96.9 459.7,67.0 542.9,112.8 626.0,51.9" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="233.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 2k · 20.79 dB</title></circle>
+<circle cx="127.1" cy="249.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 5k · 20.63 dB</title></circle>
+<circle cx="210.3" cy="139.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 7k · 21.70 dB</title></circle>
+<circle cx="293.4" cy="151.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 10k · 21.59 dB</title></circle>
+<circle cx="376.6" cy="96.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 12k · 22.11 dB</title></circle>
+<circle cx="459.7" cy="67.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 15k · 22.40 dB</title></circle>
+<circle cx="542.9" cy="112.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 17k · 21.96 dB</title></circle>
+<circle cx="626.0" cy="51.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>3e-5 · 20k · 22.55 dB</title></circle>
+<text x="620.0" y="43.9" text-anchor="end" fill="var(--s1)" font-weight="600">3e-5 22.55</text>
+<polyline points="44.0,209.1 127.1,208.6 210.3,143.0 293.4,144.0 376.6,116.6 459.7,59.0 542.9,75.4 626.0,71.2" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="209.1" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 2k · 21.02 dB</title></circle>
+<circle cx="127.1" cy="208.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 5k · 21.03 dB</title></circle>
+<circle cx="210.3" cy="143.0" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 7k · 21.66 dB</title></circle>
+<circle cx="293.4" cy="144.0" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 10k · 21.65 dB</title></circle>
+<circle cx="376.6" cy="116.6" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 12k · 21.92 dB</title></circle>
+<circle cx="459.7" cy="59.0" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 15k · 22.48 dB</title></circle>
+<circle cx="542.9" cy="75.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 17k · 22.32 dB</title></circle>
+<circle cx="626.0" cy="71.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>1e-5 · 20k · 22.36 dB</title></circle>
+<text x="620.0" y="63.2" text-anchor="end" fill="var(--s2)" font-weight="600">1e-5 22.36</text>
+<polyline points="44.0,244.7 127.1,159.3 210.3,153.0 293.4,135.6 376.6,104.4 459.7,66.5 542.9,125.0 626.0,46.3" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="244.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 2k · 20.68 dB</title></circle>
+<circle cx="127.1" cy="159.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 5k · 21.51 dB</title></circle>
+<circle cx="210.3" cy="153.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 7k · 21.57 dB</title></circle>
+<circle cx="293.4" cy="135.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 10k · 21.74 dB</title></circle>
+<circle cx="376.6" cy="104.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 12k · 22.04 dB</title></circle>
+<circle cx="459.7" cy="66.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 15k · 22.41 dB</title></circle>
+<circle cx="542.9" cy="125.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 17k · 21.84 dB</title></circle>
+<circle cx="626.0" cy="46.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>0（z = μ） · 20k · 22.60 dB</title></circle>
+<text x="620.0" y="38.3" text-anchor="end" fill="var(--s4)" font-weight="600">0（z = μ） 22.60</text>
+</svg><div class="legend"><span style="--c:var(--k)">1e-4（原始运行）</span><span style="--c:var(--s1)">3e-5</span><span style="--c:var(--s2)">1e-5</span><span style="--c:var(--s4)">0（z = μ）</span></div></figure></div>
+<p class="small">存活通道 = 每通道 KL &gt; 0.1 nats（val32 前 6 个 mesh，scripts/kl_diag.py，z = μ 评测）；* z = μ 那条没有 KL，按 |μ| rms &gt; 0.1 计。同一条运行相邻两次评估之间本来就抖 ±0.3–0.4 dB（3e-5 在 17.5k 是 21.19，20k 回到 21.57），曲线的起伏都在这个量级。</p>
+<ul>
+<li><strong>重建质量与 KL 权重无关：</strong>四条在 20k 的总计 PSNR 最大差 0.30 dB，和评估噪声同量级；连完全不加 KL 的上限也没有更好。1e-4 下 20k 时已坍缩的 33 个通道（100k 时 44 个）是冗余容量，不是损失——剩下的 31 个通道装得下模型此时能学到的全部信息。这也解释了 3.7 / 3.8 节放开 KL 续训为什么只涨零点几 dB。</li>
+<li><strong>KL 调小的代价是 latent 尺度失控：</strong>σ 中位从 0.99 掉到 0.16（3e-5）/ 0.09（1e-5），|μ| rms 最大从 2.5 涨到 3.7，纯自编码器到 10–28。给扩散先验用的话这是更差的 latent（3.8 节的无 KL 续训同样出现 μ 尺度漂移）。通道只是不再坍缩：存活 54 / 64 / 64 对 31。</li>
+<li><strong>没回答的：</strong>训到 100k–300k 之后模型会不会变成被通道数限制。20k 看不出来，要把 3e-5 这档续到 100k 和基线 100k 比（约 2.5 天 2 × 4 卡）。就现有证据，1e-4 不是太大，不建议为通道坍缩改配方。</li>
+</ul>
+<p class="small">运行：outputs/runs/roundT_pbr_kl{3e-5,1e-5,0det}_20k（作业 37443202–37443204）；诊断 outputs/kl_diag/klw20k/*.json 与 outputs/kl_diag/early/step20000.json；快照 tritex_snapshots/&lt;run&gt;/ckpt_step20000.pt。</p>
+
 
 <footer>生成脚本 build_ft_pbr_page.py；统一重评 scripts/split_sweep_eval.py → outputs/unified_eval/；数据：Objaverse 1.0 held-out。</footer>
 </div>
