@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TriTex · 原生网格上的逐面纹理 VAE 与纹理生成</title>
+<meta name="description" content="TriTex：把纹理表示为三角网格每个面上的格点颜色，用落在表面上的 latent 读写；纹理 VAE（注意力 latent → 表 latent → PBR 5 通道）与表 latent 上的纹理 DiT。项目总览与各阶段实验报告导航。">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0d12;--bg2:#10131a;--panel:#161a23;--panel2:#1c2130;--line:#262c3a;--text:#e8ebf1;--muted:#9aa3b5;--accent:#5eead4;--accent2:#f59e0b;--accent3:#818cf8;--radius:16px;--maxw:1180px;
+  --sans:"Inter","Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --surface:var(--panel);--fg:var(--text);--fg2:var(--muted);--grid:#222838;--accent-soft:rgba(94,234,212,.12);--s1:#60a5fa;--s2:#fb923c;--s3:#34d399;--s4:#fbbf24;--k:#e8ebf1;--good:#34d399;--bad:#f87171;--font-ui:var(--sans);--font-mono:var(--mono);color-scheme:dark}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.65;font-size:16px;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}img{max-width:100%;display:block}
+code,.mono{font-family:var(--mono);font-size:.88em}code{background:#20263a;padding:.1em .4em;border-radius:6px;color:#c7d2fe}.mono{color:var(--muted)}
+h1,h2,h3,h4{line-height:1.25;margin:0 0 .5em;font-weight:700;letter-spacing:-.01em}h2{font-size:clamp(26px,3.2vw,36px)}h3{font-size:20px}h4{font-size:16px;color:var(--accent)}
+p{margin:0 0 1em}.muted{color:var(--muted)}.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(11,13,18,.72);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:22px;height:58px}
+nav .brand{font-weight:800;letter-spacing:.02em;color:var(--text);display:flex;align-items:center;gap:10px;white-space:nowrap}nav .brand:hover{text-decoration:none}
+nav .brand i{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:inline-block}
+nav ul{list-style:none;display:flex;gap:4px;margin:0 0 0 auto;padding:0}nav li a{display:block;padding:6px 12px;border-radius:999px;color:var(--muted);font-size:14px;font-weight:500}
+nav li a:hover,nav li a.active{color:var(--text);background:var(--panel2);text-decoration:none}nav li a.gh{border:1px solid var(--line);margin-left:6px}
+@media(max-width:860px){nav ul{display:none}}
+.hero{position:relative;overflow:hidden;padding:88px 0 64px;border-bottom:1px solid var(--line);background:radial-gradient(900px 420px at 18% -10%,rgba(94,234,212,.16),transparent 60%),radial-gradient(700px 400px at 90% 10%,rgba(129,140,248,.18),transparent 60%),var(--bg)}
+.hero .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}@media(max-width:900px){.hero .grid{grid-template-columns:1fr}}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:18px}.eyebrow::before{content:"";width:28px;height:2px;background:var(--accent)}
+.hero h1{font-size:clamp(32px,4.6vw,52px);font-weight:800;margin-bottom:18px;text-wrap:balance}.hero h1 span{background:linear-gradient(90deg,var(--accent),var(--accent3));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:18px;color:var(--muted);max-width:620px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:30px}@media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:rgba(22,26,35,.8);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}.stat b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.stat span{font-size:13px;color:var(--muted)}
+.hero-media{margin:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.5);background:#fff}.hero-media img{width:100%}
+.hero-media figcaption{padding:10px 14px;font-size:13px;color:var(--muted);background:var(--panel)}
+section{padding:84px 0}section+section{border-top:1px solid var(--line)}
+.sec-head{display:grid;grid-template-columns:auto 1fr;gap:18px 26px;align-items:end;margin-bottom:40px}.sec-head .num{font-family:var(--mono);color:var(--accent2);font-size:14px;letter-spacing:.2em;align-self:start;padding-top:10px}.sec-head p{color:var(--muted);max-width:760px;margin:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px}.card h3{margin-top:0}.card p:last-child{margin-bottom:0}.card ul{margin:.2em 0 0;padding-left:1.2em}.card li{margin:.3em 0;color:#cfd5e1}
+.cards{display:grid;gap:18px;align-items:start}.cards.c2{grid-template-columns:repeat(2,1fr)}.cards.c3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:960px){.cards.c3{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.cards.c2,.cards.c3{grid-template-columns:1fr}}
+.figure{margin:0 0 28px}.figure img{width:100%;border-radius:12px;border:1px solid var(--line);cursor:zoom-in;background:#fff}.figure figcaption{font-size:14px;color:var(--muted);margin-top:10px}.figure figcaption b{color:var(--text)}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px 12px;margin:0 0 28px}.chart svg{max-width:100%!important;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 0 0}.legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--c,var(--fg2))}.legend .dash::before{height:0;border-top:2px dashed var(--fg2);background:none}
+.sub{margin:48px 0 18px;display:flex;align-items:center;gap:14px}.sub h3{margin:0}.sub::after{content:"";flex:1;height:1px;background:var(--line)}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#1f2a3a;color:var(--accent);border:1px solid #27405a;vertical-align:middle}.pill.amber{color:var(--accent2);background:#2b2416;border-color:#4a3a17}
+table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-weight:600;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}tr:last-child td{border-bottom:none}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:28px}td.good{color:var(--good);font-weight:600}td.bad{color:var(--bad);font-weight:600}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14.5px}.kv dt{color:var(--muted);font-family:var(--mono);font-size:13px;white-space:nowrap}.kv dd{margin:0}
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:8px 0 30px}@media(max-width:960px){.flow{grid-template-columns:repeat(3,1fr)}}@media(max-width:560px){.flow{grid-template-columns:repeat(2,1fr)}}
+.step{position:relative;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:16px 14px 14px}.step .n{font-family:var(--mono);font-size:12px;color:var(--accent2);margin-bottom:6px}.step b{display:block;font-size:15px;margin-bottom:4px}.step span{font-size:13px;color:var(--muted);line-height:1.45;display:block}
+.step::after{content:"→";position:absolute;right:-13px;top:46%;color:var(--line);font-size:18px;z-index:1}.step:last-child::after{content:""}
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}@media(max-width:960px){.stages{grid-template-columns:repeat(2,1fr)}}@media(max-width:640px){.stages{grid-template-columns:1fr}}
+.stage{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;color:var(--text);transition:transform .2s,border-color .2s}.stage:hover{text-decoration:none;transform:translateY(-3px);border-color:#3a4358}
+.stage .n{font-family:var(--mono);font-size:12px;color:var(--accent2);letter-spacing:.1em;margin-bottom:8px}.stage h3{font-size:17px;margin:0 0 10px}.stage b{font-size:28px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}.stage .vl{font-size:12.5px;color:var(--muted);margin:4px 0 12px}
+.stage p{font-size:14px;color:#cfd5e1;margin:0 0 14px;flex:1}.stage .go{font-size:13px;color:var(--accent);font-weight:600}
+.pages{display:grid;gap:14px}.pcard{display:grid;grid-template-columns:52px 1fr;gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;color:var(--text)}.pcard:hover{text-decoration:none;border-color:#3a4358;background:var(--panel2)}
+.pcard .n{font-family:var(--mono);color:var(--accent2);font-size:20px;font-weight:600;padding-top:2px}.pcard h3{font-size:17px;margin:0 0 6px}.pcard p{font-size:14px;color:#cfd5e1;margin:0 0 8px}.pcard .meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.case{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:0 0 22px}.casehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:10px;font-size:14px}.meta{color:var(--muted);font-size:13px}.meta b{color:var(--text)}
+.canvaswrap{position:relative;width:100%;aspect-ratio:4/1.25;background:#000;border-radius:10px;overflow:hidden}.canvaswrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.canvaswrap .poster{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:100%;width:auto;object-fit:contain;opacity:.9}.canvaswrap .loadmsg{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);background:var(--panel);padding:2px 8px;border-radius:999px}
+.vlabels{display:grid;grid-template-columns:repeat(4,1fr);text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
+.ctrl{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);margin-top:8px}.ctrl label{display:inline-flex;gap:4px;align-items:center;cursor:pointer}.ctrl .hint{margin-left:auto;font-size:12px}
+.ctrl button{font:inherit;font-size:12.5px;padding:4px 12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:999px;cursor:pointer}
+@media(max-width:700px){.canvaswrap{aspect-ratio:4/2.2}}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s,transform .6s}.reveal.in{opacity:1;transform:none}@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:100;cursor:zoom-out;padding:24px}.lb.on{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
+footer{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--muted);font-size:13.5px}footer .wrap{display:flex;flex-wrap:wrap;gap:8px 28px}
+</style></head>
+<body>
+<nav><div class="wrap"><a class="brand" href="#top"><i></i>TriTex</a><ul>
+<li><a href="#overview">概览</a></li><li><a href="#method">方法</a></li><li><a href="#results">结果</a></li><li><a href="#demo">演示</a></li><li><a href="#pages">实验报告</a></li><li><a href="#next">局限与下一步</a></li>
+<li><a class="gh" href="https://github.com/CaesarrWANG/tritexture#readme">GitHub ↗</a></li></ul></div></nav>
+
+<header class="hero" id="top"><div class="wrap grid">
+<div><div class="eyebrow">Per-triangle texture VAE · Objaverse</div>
+<h1>原生网格上的<span>逐面纹理 VAE</span><br>与纹理生成</h1>
+<p class="lead">不展 UV、不烘焙多视角图：纹理直接表示为三角网格每个面上的格点颜色，用一组落在表面上的 latent token 读写。从 Objaverse 12 万个物体上的基线出发，经过 latent 结构的重新设计、5 通道 PBR 扩展，到表 latent 上的扩散生成。</p>
+<div class="stats">
+<div class="stat"><b>119,318</b><span>训练 mesh（Objaverse 1.0，≤ 20 万面）</span></div>
+<div class="stat"><b>32.43 dB</b><span>表 latent 91 点，held-out albedo 面积 PSNR（旧模型 24.73）</span></div>
+<div class="stat"><b>26.90 dB</b><span>5 通道 PBR VAE，held-out 63，300k EMA</span></div>
+<div class="stat"><b>0.020</b><span>DiT 相邻面色差（无引导 0.101，真值 0.013）</span></div>
+</div></div>
+<figure class="hero-media"><img src="overview/hero_cases.jpg" alt="四个 held-out 案例：上排 GT albedo，下排 5 通道 PBR VAE 300k 重建" width="1400" height="700">
+<figcaption>4 个 held-out 案例（Rippersnapper · 救护车 · 舞蹈面具 · Shadowsun）：上排 GT albedo，下排 5 通道 PBR VAE（300k）重建。交互式 3D 对比见下方“演示”。</figcaption></figure>
+</div></header>
+
+<section id="overview"><div class="wrap">
+<div class="sec-head reveal"><div class="num">00 / 概览</div><div><h2>一句话概括</h2>
+<p>带贴图的 GLB → 每个三角形上固定位置的 91 个格点颜色 → 循环等变的面编码器 → 落在表面上的 latent（注意力 latent 或表 latent）→ 面角点作为 query 读回 → 每面 91 点颜色。整个流程保持 GLB 的面顺序，不合并顶点、不重新参数化；生成模型（DiT）直接在表 latent 上工作，mesh 的几何决定 token 的地址。</p></div></div>
+<div class="flow reveal">
+<div class="step"><div class="n">01</div><b>输入</b><span>GLB 网格 + 贴图；面保持索引缓冲顺序；大面按 1/8192 或 1/16384 表面积在线切分</span></div>
+<div class="step"><div class="n">02</div><b>逐面采样</b><span>每面 91 个格点（12 阶格点，缩 0.9），编码器用 28 点子集；读 albedo / 金属度 / 粗糙度</span></div>
+<div class="step"><div class="n">03</div><b>面编码器</b><span>循环等变（A,B,C → B,C,A）：格点颜色 + 相对角点几何 → 3F 个角点 token，宽 1024</span></div>
+<div class="step"><div class="n">04</div><b>latent</b><span>表面 FPS 8192 个锚点：注意力 latent 8192 × 64，或按（格子, 槽位, 角点）定址的表 latent</span></div>
+<div class="step"><div class="n">05</div><b>解码</b><span>角点 query 读回 latent（RoPE-6D + 拉普拉斯谱 RoPE），面解码器输出每面 91 点</span></div>
+<div class="step"><div class="n">06</div><b>生成</b><span>表 latent 上的 DiT：流匹配、每 token 几何条件、接缝损失、DINOv2 图像条件</span></div>
+</div>
+<figure class="figure reveal"><img src="vae/arch.jpg" alt="注意力 latent 与表 latent 的架构对比" loading="lazy">
+<figcaption><b>两代 latent 的架构。</b>左：旧模型，8192 个锚点各一个 64 维 latent，写入和读取都是全局 softmax 加权求和；右：表 latent，每个面按最近锚点分格、按距离分槽位，三个角点各写入自己的块，latent 间的自注意力只加零初始化残差。详见 <a href="vae.html#s1">纹理 VAE 汇报 · 架构</a>。</figcaption></figure>
+</div></section>
+
+<section id="method"><div class="wrap">
+<div class="sec-head reveal"><div class="num">01 / 方法</div><div><h2>表示、位置、latent 与配方</h2>
+<p>四个设计点决定了这个模型和"把纹理烘成图再编码"的路线有什么不同：纹理住在面上；位置只通过旋转位置编码进入；latent 的地址由几何决定；训练配方在整个项目里保持单变量可比。</p></div></div>
+<div class="cards c2 reveal">
+<div class="card"><h3>纹理住在面上</h3><p>每个三角形的纹理是固定重心坐标上的 91 个颜色（12 阶格点，向内缩 0.9 避开边缘），训练时每面全部 91 点都监督。面编码器 / 解码器对角点的循环置换等变，换一种顶点起点不改变结果。无损的"格点 IO 旁路"达到 31.14 dB 的插值上限，说明表示本身不是瓶颈。</p></div>
+<div class="card"><h3>位置只通过 RoPE 进入</h3><p>面 token 只含相对几何；绝对位置由 RoPE-6D（位置 + 法向）和拉普拉斯特征向量上的 WIRE 谱 RoPE 提供（libigl 余切拉普拉斯），加 rope_v。锚点是表面上的最远点采样（8192 个），预先计算成 sidecar，VAE 和 DiT 共用同一套锚点和地址。</p></div>
+<div class="card"><h3>两种 latent</h3><p><b>注意力 latent：</b>8192 × 64，交叉注意力读写，2.19 亿参数，是 Round P 基线和 5 通道 PBR VAE（C5VAE）用的结构。<b>表 latent：</b>每个面角点按（格子, 槽位, 角点）下标读写，(8 + 1) 槽 × 3 角点 × 16 通道 = 432 维/锚点，2.12 亿参数；注意力只做零初始化残差，不在读写路径上。Round Q 的机制分析解释了为什么前者会把相邻面平均掉。</p></div>
+<div class="card"><h3>训练配方</h3><dl class="kv"><dt>优化</dt><dd>常数学习率 3e-4，4k 热身；KL 1e-4，8k 热身；bf16 + 梯度检查点</dd><dt>批</dt><dd>16 mesh / 步，每 GPU 一个 mesh，面数上限 20 万</dd><dt>硬件</dt><dd>4 节点 × 4 × H100（Slurm），单节点 4 卡用于 10k 步的小规模对照</dd><dt>PBR</dt><dd>albedo + 金属度 + 粗糙度 5 通道，1/16384 在线切分；100k → 200k（放开坍缩通道 KL，EMA）→ 300k（去掉 KL，z = μ）</dd><dt>评测</dt><dd>面积 PSNR / 面 PSNR / 资产中位数三个口径同时报告；val32 用于阶段间对比，held-out 63 做终评</dd></dl></div>
+</div>
+</div></section>
+
+<section id="results"><div class="wrap">
+<div class="sec-head reveal"><div class="num">02 / 结果</div><div><h2>六个阶段，每个阶段一个数</h2>
+<p>按时间顺序。每张卡片的数字是该阶段页面上的主结论，点击进入对应页面的那一节。注意不同阶段的模型和评测集不完全相同（albedo 单通道 / 5 通道 PBR；val32 / 64 mesh 终评），卡片里都标明了口径。</p></div></div>
+<div class="stages"><a class="stage reveal" href="index.html#s4"><div class="n">01 · 10-11 → 10-14</div><h3>Round P：Objaverse 全规模基线</h3><b>24.67 dB</b><span class="vl">held-out 面积 PSNR，低于 const 25.78</span><p>基线配方在 12 万物体上低于每面平均色 1.1 dB；在有纹理的面上赢 1.06 dB，常数面上的误差 97% 是平均色偏了。诊断把问题指向 latent 的高频瓶颈。</p><span class="go">打开页面 →</span></a><a class="stage reveal" href="roundq.html#s6"><div class="n">02 · 10-14 → 10-17</div><h3>Round Q 续：表 latent</h3><b>25.89 → 28.83 dB</b><span class="vl">旧模型最佳 → 表 latent（50k + 退火）</span><p>三天定位机制：注意力读写把相邻面平均掉了。改成由几何决定地址、按下标读写的表 latent，离 28 点输入的插值上界 29.08 只差 0.25。</p><span class="go">打开页面 →</span></a><a class="stage reveal" href="oldmodel.html#s2"><div class="n">03 · 10-19 → 10-26</div><h3>旧模型探索：采样密度</h3><b>+2.76 dB</b><span class="vl">推理时切分大面（200k + 退火，26.13 → 28.89）</span><p>10k 步内加采样点、加监督点都没有让旧模型越过 const；大面切分带来的提升超过 const 自身的位移（2.17）。</p><span class="go">打开页面 →</span></a><a class="stage reveal" href="vae.html#s2"><div class="n">04 · 10-19 → 10-20</div><h3>纹理 VAE 汇报</h3><b>32.43 dB</b><span class="vl">表 latent + 91 点输入，val32 albedo</span><p>汇总：注意力 latent 24.73 → 表 latent 28 点 28.83 → 91 点 32.43 dB；64 个 mesh 终评 32.65；10 个展示案例 3D 渲染 9/10 胜出。</p><span class="go">打开页面 →</span></a><a class="stage reveal" href="ftpbr.html#s1"><div class="n">05 · 10-23 → 进行中</div><h3>微调对照与 PBR VAE</h3><b>26.90 dB</b><span class="vl">C5VAE 5 通道 PBR，held-out 63，300k EMA</span><p>A–E 单变量微调无一超过对照；5 通道 VAE 100k → 200k（放开坍缩通道 KL、EMA）→ 300k（去掉 KL）；TRELLIS.2 同口径对比 val32 26.80 对 25.92；KL 权重对照。</p><span class="go">打开页面 →</span></a><a class="stage reveal" href="dit.html#s3"><div class="n">06 · 10-17 → 10-20</div><h3>纹理 DiT</h3><b>0.101 → 0.020</b><span class="vl">相邻面色差（真值 0.013）</span><p>无条件生成先解决“迪斯科球”（面与面颜色互不相关），再接入图像条件：小规模采样对真值 23.0 dB（VAE 上限 28.5），全规模训练进行中。</p><span class="go">打开页面 →</span></a></div>
+<div class="sub"><h3>5 通道 PBR VAE 的完整训练曲线</h3></div>
+<div class="chart reveal"><svg viewBox="0 0 1100 340" width="100%" role="img" aria-label="C5VAE（5 通道 PBR VAE）val32 面积 PSNR，0 → 300k 步" style="max-width:1100px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">C5VAE（5 通道 PBR VAE）val32 面积 PSNR，0 → 300k 步</text>
+<line x1="44" x2="1086" y1="301.8" y2="301.8" stroke="var(--grid)"/>
+<text x="38" y="305.3" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="1086" y1="242.4" y2="242.4" stroke="var(--grid)"/>
+<text x="38" y="245.9" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="1086" y1="182.9" y2="182.9" stroke="var(--grid)"/>
+<text x="38" y="186.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="1086" y1="123.4" y2="123.4" stroke="var(--grid)"/>
+<text x="38" y="126.9" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
+<line x1="44" x2="1086" y1="63.9" y2="63.9" stroke="var(--grid)"/>
+<text x="38" y="67.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">30</text>
+<text x="210.4" y="322" text-anchor="middle" fill="var(--fg2)">50k</text>
+<text x="385.5" y="322" text-anchor="middle" fill="var(--fg2)">100k</text>
+<text x="560.6" y="322" text-anchor="middle" fill="var(--fg2)">150k</text>
+<text x="735.7" y="322" text-anchor="middle" fill="var(--fg2)">200k</text>
+<text x="910.9" y="322" text-anchor="middle" fill="var(--fg2)">250k</text>
+<text x="1086.0" y="322" text-anchor="middle" fill="var(--fg2)">300k</text>
+<text x="565" y="336" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,168) rotate(-90)" text-anchor="middle" fill="var(--fg2)">面积 PSNR (dB)</text>
+<line x1="44" x2="1086" y1="210.3" y2="210.3" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="1086" y="206.3" text-anchor="end" fill="var(--fg2)">每面平均色 const 25.08</text>
+<line x1="44" x2="1086" y1="159.1" y2="159.1" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="1086" y="155.1" text-anchor="end" fill="var(--fg2)">TRELLIS.2 纹理 VAE 26.80</text>
+<polyline points="44.0,374.3 52.8,342.8 61.5,337.9 70.3,332.5 79.0,328.2 87.8,316.2 96.5,307.3 105.3,305.6 114.1,300.3 122.8,297.9 131.6,297.1 140.3,292.2 149.1,288.1 157.8,282.9 166.6,277.8 175.3,279.0 184.1,276.4 192.9,273.8 201.6,271.9 210.4,264.9 219.1,269.1 227.9,268.6 236.6,264.1 245.4,259.4 254.2,252.0 262.9,255.3 271.7,254.6 280.4,247.8 289.2,247.8 297.9,245.6 306.7,246.9 315.4,245.8 324.2,243.8 333.0,242.3 341.7,243.4 350.5,245.1 359.2,242.5 368.0,235.9 376.7,239.8 385.5,234.9 394.3,232.8 403.0,234.0 411.8,236.1 420.5,234.6 429.3,231.3 438.0,235.3 446.8,228.8 455.5,231.0 464.3,233.1 473.1,225.6 481.8,225.5 490.6,225.5 499.3,229.9 508.1,225.7 516.8,229.0 525.6,225.2 534.4,222.0 543.1,223.7 551.9,217.9 560.6,222.8 569.4,220.8 578.1,217.1 586.9,220.4 595.6,224.9 604.4,223.3 613.2,219.2 621.9,216.5 630.7,219.0 639.4,224.4 648.2,218.0 656.9,215.0 665.7,223.8 674.5,214.7 683.2,214.7 692.0,212.6 700.7,224.9 709.5,213.5 718.2,212.5 727.0,217.0 735.7,213.2 744.5,213.3 753.3,219.3 762.0,216.1 770.8,216.1 779.5,219.4 788.3,211.8 797.0,209.4 805.8,209.3 814.6,206.5 823.3,222.8 832.1,203.8 840.8,208.7 849.6,217.4 858.3,203.7 867.1,221.2 875.8,209.9 884.6,206.7 893.4,207.3 902.1,205.5 910.9,208.2 919.6,212.6 928.4,205.8 937.1,203.0 945.9,199.5 954.7,224.8 963.4,202.2 972.2,199.3 980.9,204.8 989.7,204.1 998.4,214.7 1007.2,204.4 1015.9,199.9 1024.7,202.0 1033.5,195.0 1042.2,202.2 1051.0,197.6 1059.7,197.3 1068.5,193.7 1077.2,194.2 1086.0,195.4" fill="none" stroke="var(--s4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="374.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 2k · 19.56 dB</title></circle>
+<circle cx="52.8" cy="342.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 5k · 20.62 dB</title></circle>
+<circle cx="61.5" cy="337.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 7k · 20.79 dB</title></circle>
+<circle cx="70.3" cy="332.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 10k · 20.97 dB</title></circle>
+<circle cx="79.0" cy="328.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 12k · 21.11 dB</title></circle>
+<circle cx="87.8" cy="316.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 15k · 21.52 dB</title></circle>
+<circle cx="96.5" cy="307.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 17k · 21.82 dB</title></circle>
+<circle cx="105.3" cy="305.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 20k · 21.87 dB</title></circle>
+<circle cx="114.1" cy="300.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 22k · 22.05 dB</title></circle>
+<circle cx="122.8" cy="297.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 25k · 22.13 dB</title></circle>
+<circle cx="131.6" cy="297.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 27k · 22.16 dB</title></circle>
+<circle cx="140.3" cy="292.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 30k · 22.33 dB</title></circle>
+<circle cx="149.1" cy="288.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 32k · 22.46 dB</title></circle>
+<circle cx="157.8" cy="282.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 35k · 22.64 dB</title></circle>
+<circle cx="166.6" cy="277.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 37k · 22.81 dB</title></circle>
+<circle cx="175.3" cy="279.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 40k · 22.77 dB</title></circle>
+<circle cx="184.1" cy="276.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 42k · 22.85 dB</title></circle>
+<circle cx="192.9" cy="273.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 45k · 22.94 dB</title></circle>
+<circle cx="201.6" cy="271.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 47k · 23.01 dB</title></circle>
+<circle cx="210.4" cy="264.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 50k · 23.24 dB</title></circle>
+<circle cx="219.1" cy="269.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 52k · 23.10 dB</title></circle>
+<circle cx="227.9" cy="268.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 55k · 23.12 dB</title></circle>
+<circle cx="236.6" cy="264.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 57k · 23.27 dB</title></circle>
+<circle cx="245.4" cy="259.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 60k · 23.43 dB</title></circle>
+<circle cx="254.2" cy="252.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 62k · 23.68 dB</title></circle>
+<circle cx="262.9" cy="255.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 65k · 23.56 dB</title></circle>
+<circle cx="271.7" cy="254.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 67k · 23.59 dB</title></circle>
+<circle cx="280.4" cy="247.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 70k · 23.82 dB</title></circle>
+<circle cx="289.2" cy="247.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 72k · 23.82 dB</title></circle>
+<circle cx="297.9" cy="245.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 75k · 23.89 dB</title></circle>
+<circle cx="306.7" cy="246.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 77k · 23.85 dB</title></circle>
+<circle cx="315.4" cy="245.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 80k · 23.88 dB</title></circle>
+<circle cx="324.2" cy="243.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 82k · 23.95 dB</title></circle>
+<circle cx="333.0" cy="242.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 85k · 24.00 dB</title></circle>
+<circle cx="341.7" cy="243.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 87k · 23.97 dB</title></circle>
+<circle cx="350.5" cy="245.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 90k · 23.91 dB</title></circle>
+<circle cx="359.2" cy="242.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 92k · 23.99 dB</title></circle>
+<circle cx="368.0" cy="235.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 95k · 24.22 dB</title></circle>
+<circle cx="376.7" cy="239.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 97k · 24.09 dB</title></circle>
+<circle cx="385.5" cy="234.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 100k · 24.25 dB</title></circle>
+<circle cx="394.3" cy="232.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 102k · 24.32 dB</title></circle>
+<circle cx="403.0" cy="234.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 105k · 24.28 dB</title></circle>
+<circle cx="411.8" cy="236.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 107k · 24.21 dB</title></circle>
+<circle cx="420.5" cy="234.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 110k · 24.26 dB</title></circle>
+<circle cx="429.3" cy="231.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 112k · 24.37 dB</title></circle>
+<circle cx="438.0" cy="235.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 115k · 24.24 dB</title></circle>
+<circle cx="446.8" cy="228.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 117k · 24.46 dB</title></circle>
+<circle cx="455.5" cy="231.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 120k · 24.38 dB</title></circle>
+<circle cx="464.3" cy="233.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 122k · 24.31 dB</title></circle>
+<circle cx="473.1" cy="225.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 125k · 24.56 dB</title></circle>
+<circle cx="481.8" cy="225.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 127k · 24.57 dB</title></circle>
+<circle cx="490.6" cy="225.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 130k · 24.57 dB</title></circle>
+<circle cx="499.3" cy="229.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 132k · 24.42 dB</title></circle>
+<circle cx="508.1" cy="225.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 135k · 24.56 dB</title></circle>
+<circle cx="516.8" cy="229.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 137k · 24.45 dB</title></circle>
+<circle cx="525.6" cy="225.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 140k · 24.58 dB</title></circle>
+<circle cx="534.4" cy="222.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 142k · 24.69 dB</title></circle>
+<circle cx="543.1" cy="223.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 145k · 24.63 dB</title></circle>
+<circle cx="551.9" cy="217.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 147k · 24.82 dB</title></circle>
+<circle cx="560.6" cy="222.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 150k · 24.66 dB</title></circle>
+<circle cx="569.4" cy="220.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 152k · 24.72 dB</title></circle>
+<circle cx="578.1" cy="217.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 155k · 24.85 dB</title></circle>
+<circle cx="586.9" cy="220.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 157k · 24.74 dB</title></circle>
+<circle cx="595.6" cy="224.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 160k · 24.59 dB</title></circle>
+<circle cx="604.4" cy="223.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 162k · 24.64 dB</title></circle>
+<circle cx="613.2" cy="219.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 165k · 24.78 dB</title></circle>
+<circle cx="621.9" cy="216.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 167k · 24.87 dB</title></circle>
+<circle cx="630.7" cy="219.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 170k · 24.78 dB</title></circle>
+<circle cx="639.4" cy="224.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 172k · 24.60 dB</title></circle>
+<circle cx="648.2" cy="218.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 175k · 24.82 dB</title></circle>
+<circle cx="656.9" cy="215.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 177k · 24.92 dB</title></circle>
+<circle cx="665.7" cy="223.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 180k · 24.63 dB</title></circle>
+<circle cx="674.5" cy="214.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 182k · 24.93 dB</title></circle>
+<circle cx="683.2" cy="214.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 185k · 24.93 dB</title></circle>
+<circle cx="692.0" cy="212.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 187k · 25.00 dB</title></circle>
+<circle cx="700.7" cy="224.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 190k · 24.59 dB</title></circle>
+<circle cx="709.5" cy="213.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 192k · 24.97 dB</title></circle>
+<circle cx="718.2" cy="212.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 195k · 25.00 dB</title></circle>
+<circle cx="727.0" cy="217.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 197k · 24.85 dB</title></circle>
+<circle cx="735.7" cy="213.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 200k · 24.98 dB</title></circle>
+<circle cx="744.5" cy="213.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 202k · 24.98 dB</title></circle>
+<circle cx="753.3" cy="219.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 205k · 24.78 dB</title></circle>
+<circle cx="762.0" cy="216.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 207k · 24.88 dB</title></circle>
+<circle cx="770.8" cy="216.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 210k · 24.88 dB</title></circle>
+<circle cx="779.5" cy="219.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 212k · 24.77 dB</title></circle>
+<circle cx="788.3" cy="211.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 215k · 25.03 dB</title></circle>
+<circle cx="797.0" cy="209.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 217k · 25.11 dB</title></circle>
+<circle cx="805.8" cy="209.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 220k · 25.11 dB</title></circle>
+<circle cx="814.6" cy="206.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 222k · 25.21 dB</title></circle>
+<circle cx="823.3" cy="222.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 225k · 24.66 dB</title></circle>
+<circle cx="832.1" cy="203.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 227k · 25.30 dB</title></circle>
+<circle cx="840.8" cy="208.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 230k · 25.13 dB</title></circle>
+<circle cx="849.6" cy="217.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 232k · 24.84 dB</title></circle>
+<circle cx="858.3" cy="203.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 235k · 25.30 dB</title></circle>
+<circle cx="867.1" cy="221.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 237k · 24.71 dB</title></circle>
+<circle cx="875.8" cy="209.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 240k · 25.09 dB</title></circle>
+<circle cx="884.6" cy="206.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 242k · 25.20 dB</title></circle>
+<circle cx="893.4" cy="207.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 245k · 25.18 dB</title></circle>
+<circle cx="902.1" cy="205.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 247k · 25.24 dB</title></circle>
+<circle cx="910.9" cy="208.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 250k · 25.15 dB</title></circle>
+<circle cx="919.6" cy="212.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 252k · 25.00 dB</title></circle>
+<circle cx="928.4" cy="205.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 255k · 25.23 dB</title></circle>
+<circle cx="937.1" cy="203.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 257k · 25.32 dB</title></circle>
+<circle cx="945.9" cy="199.5" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 260k · 25.44 dB</title></circle>
+<circle cx="954.7" cy="224.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 262k · 24.59 dB</title></circle>
+<circle cx="963.4" cy="202.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 265k · 25.35 dB</title></circle>
+<circle cx="972.2" cy="199.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 267k · 25.45 dB</title></circle>
+<circle cx="980.9" cy="204.8" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 270k · 25.26 dB</title></circle>
+<circle cx="989.7" cy="204.1" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 272k · 25.29 dB</title></circle>
+<circle cx="998.4" cy="214.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 275k · 24.93 dB</title></circle>
+<circle cx="1007.2" cy="204.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 277k · 25.28 dB</title></circle>
+<circle cx="1015.9" cy="199.9" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 280k · 25.43 dB</title></circle>
+<circle cx="1024.7" cy="202.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 282k · 25.36 dB</title></circle>
+<circle cx="1033.5" cy="195.0" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 285k · 25.59 dB</title></circle>
+<circle cx="1042.2" cy="202.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 287k · 25.35 dB</title></circle>
+<circle cx="1051.0" cy="197.6" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 290k · 25.51 dB</title></circle>
+<circle cx="1059.7" cy="197.3" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 292k · 25.52 dB</title></circle>
+<circle cx="1068.5" cy="193.7" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 295k · 25.63 dB</title></circle>
+<circle cx="1077.2" cy="194.2" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 297k · 25.62 dB</title></circle>
+<circle cx="1086.0" cy="195.4" r="3" fill="var(--s4)" stroke="var(--surface)" stroke-width="1.5"><title>原始权重 · 300k · 25.58 dB</title></circle>
+<text x="1080.0" y="187.4" text-anchor="end" fill="var(--s4)" font-weight="600">原始权重 25.58</text>
+<polyline points="394.3,230.8 403.0,228.1 411.8,225.7 420.5,225.0 429.3,224.1 438.0,223.5 446.8,223.2 455.5,222.7 464.3,221.8 473.1,220.1 481.8,219.5 490.6,219.0 499.3,219.6 508.1,219.1 516.8,218.3 525.6,217.7 534.4,218.0 543.1,217.3 551.9,215.9 560.6,214.1 569.4,214.1 578.1,213.0 586.9,211.9 595.6,211.4 604.4,210.8 613.2,210.2 621.9,209.7 630.7,209.1 639.4,208.4 648.2,207.8 656.9,206.8 665.7,206.7 674.5,206.0 683.2,205.1 692.0,205.1 700.7,204.0 709.5,203.7 718.2,203.4 727.0,202.5 735.7,202.9 744.5,202.9 753.3,202.3 762.0,201.5 770.8,201.1 779.5,200.7 788.3,200.4 797.0,199.8 805.8,199.2 814.6,198.8 823.3,198.9 832.1,198.9 840.8,197.8 849.6,197.6 858.3,197.3 867.1,196.1 875.8,196.1 884.6,196.7 893.4,197.0 902.1,196.4 910.9,196.1 919.6,194.7 928.4,194.9 937.1,193.8 945.9,193.8 954.7,193.3 963.4,191.6 972.2,191.3 980.9,191.5 989.7,190.7 998.4,190.4 1007.2,189.2 1015.9,189.1 1024.7,188.8 1033.5,188.6 1042.2,187.7 1051.0,187.2 1059.7,186.7 1068.5,186.3 1077.2,185.6 1086.0,185.1" fill="none" stroke="var(--k)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="394.3" cy="230.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 102k · 24.39 dB</title></circle>
+<circle cx="403.0" cy="228.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 105k · 24.48 dB</title></circle>
+<circle cx="411.8" cy="225.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 107k · 24.56 dB</title></circle>
+<circle cx="420.5" cy="225.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 110k · 24.58 dB</title></circle>
+<circle cx="429.3" cy="224.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 112k · 24.61 dB</title></circle>
+<circle cx="438.0" cy="223.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 115k · 24.63 dB</title></circle>
+<circle cx="446.8" cy="223.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 117k · 24.65 dB</title></circle>
+<circle cx="455.5" cy="222.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 120k · 24.66 dB</title></circle>
+<circle cx="464.3" cy="221.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 122k · 24.69 dB</title></circle>
+<circle cx="473.1" cy="220.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 125k · 24.75 dB</title></circle>
+<circle cx="481.8" cy="219.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 127k · 24.77 dB</title></circle>
+<circle cx="490.6" cy="219.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 130k · 24.79 dB</title></circle>
+<circle cx="499.3" cy="219.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 132k · 24.77 dB</title></circle>
+<circle cx="508.1" cy="219.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 135k · 24.78 dB</title></circle>
+<circle cx="516.8" cy="218.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 137k · 24.81 dB</title></circle>
+<circle cx="525.6" cy="217.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 140k · 24.83 dB</title></circle>
+<circle cx="534.4" cy="218.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 142k · 24.82 dB</title></circle>
+<circle cx="543.1" cy="217.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 145k · 24.84 dB</title></circle>
+<circle cx="551.9" cy="215.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 147k · 24.89 dB</title></circle>
+<circle cx="560.6" cy="214.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 150k · 24.95 dB</title></circle>
+<circle cx="569.4" cy="214.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 152k · 24.95 dB</title></circle>
+<circle cx="578.1" cy="213.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 155k · 24.99 dB</title></circle>
+<circle cx="586.9" cy="211.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 157k · 25.02 dB</title></circle>
+<circle cx="595.6" cy="211.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 160k · 25.04 dB</title></circle>
+<circle cx="604.4" cy="210.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 162k · 25.06 dB</title></circle>
+<circle cx="613.2" cy="210.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 165k · 25.08 dB</title></circle>
+<circle cx="621.9" cy="209.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 167k · 25.10 dB</title></circle>
+<circle cx="630.7" cy="209.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 170k · 25.12 dB</title></circle>
+<circle cx="639.4" cy="208.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 172k · 25.14 dB</title></circle>
+<circle cx="648.2" cy="207.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 175k · 25.16 dB</title></circle>
+<circle cx="656.9" cy="206.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 177k · 25.20 dB</title></circle>
+<circle cx="665.7" cy="206.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 180k · 25.20 dB</title></circle>
+<circle cx="674.5" cy="206.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 182k · 25.22 dB</title></circle>
+<circle cx="683.2" cy="205.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 185k · 25.25 dB</title></circle>
+<circle cx="692.0" cy="205.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 187k · 25.25 dB</title></circle>
+<circle cx="700.7" cy="204.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 190k · 25.29 dB</title></circle>
+<circle cx="709.5" cy="203.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 192k · 25.30 dB</title></circle>
+<circle cx="718.2" cy="203.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 195k · 25.31 dB</title></circle>
+<circle cx="727.0" cy="202.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 197k · 25.34 dB</title></circle>
+<circle cx="735.7" cy="202.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 200k · 25.33 dB</title></circle>
+<circle cx="744.5" cy="202.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 202k · 25.33 dB</title></circle>
+<circle cx="753.3" cy="202.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 205k · 25.35 dB</title></circle>
+<circle cx="762.0" cy="201.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 207k · 25.37 dB</title></circle>
+<circle cx="770.8" cy="201.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 210k · 25.39 dB</title></circle>
+<circle cx="779.5" cy="200.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 212k · 25.40 dB</title></circle>
+<circle cx="788.3" cy="200.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 215k · 25.41 dB</title></circle>
+<circle cx="797.0" cy="199.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 217k · 25.43 dB</title></circle>
+<circle cx="805.8" cy="199.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 220k · 25.45 dB</title></circle>
+<circle cx="814.6" cy="198.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 222k · 25.46 dB</title></circle>
+<circle cx="823.3" cy="198.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 225k · 25.46 dB</title></circle>
+<circle cx="832.1" cy="198.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 227k · 25.46 dB</title></circle>
+<circle cx="840.8" cy="197.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 230k · 25.50 dB</title></circle>
+<circle cx="849.6" cy="197.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 232k · 25.50 dB</title></circle>
+<circle cx="858.3" cy="197.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 235k · 25.52 dB</title></circle>
+<circle cx="867.1" cy="196.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 237k · 25.55 dB</title></circle>
+<circle cx="875.8" cy="196.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 240k · 25.56 dB</title></circle>
+<circle cx="884.6" cy="196.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 242k · 25.53 dB</title></circle>
+<circle cx="893.4" cy="197.0" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 245k · 25.52 dB</title></circle>
+<circle cx="902.1" cy="196.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 247k · 25.54 dB</title></circle>
+<circle cx="910.9" cy="196.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 250k · 25.56 dB</title></circle>
+<circle cx="919.6" cy="194.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 252k · 25.60 dB</title></circle>
+<circle cx="928.4" cy="194.9" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 255k · 25.59 dB</title></circle>
+<circle cx="937.1" cy="193.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 257k · 25.63 dB</title></circle>
+<circle cx="945.9" cy="193.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 260k · 25.63 dB</title></circle>
+<circle cx="954.7" cy="193.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 262k · 25.65 dB</title></circle>
+<circle cx="963.4" cy="191.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 265k · 25.71 dB</title></circle>
+<circle cx="972.2" cy="191.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 267k · 25.72 dB</title></circle>
+<circle cx="980.9" cy="191.5" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 270k · 25.71 dB</title></circle>
+<circle cx="989.7" cy="190.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 272k · 25.74 dB</title></circle>
+<circle cx="998.4" cy="190.4" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 275k · 25.75 dB</title></circle>
+<circle cx="1007.2" cy="189.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 277k · 25.79 dB</title></circle>
+<circle cx="1015.9" cy="189.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 280k · 25.79 dB</title></circle>
+<circle cx="1024.7" cy="188.8" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 282k · 25.80 dB</title></circle>
+<circle cx="1033.5" cy="188.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 285k · 25.81 dB</title></circle>
+<circle cx="1042.2" cy="187.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 287k · 25.84 dB</title></circle>
+<circle cx="1051.0" cy="187.2" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 290k · 25.85 dB</title></circle>
+<circle cx="1059.7" cy="186.7" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 292k · 25.87 dB</title></circle>
+<circle cx="1068.5" cy="186.3" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 295k · 25.88 dB</title></circle>
+<circle cx="1077.2" cy="185.6" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 297k · 25.91 dB</title></circle>
+<circle cx="1086.0" cy="185.1" r="3" fill="var(--k)" stroke="var(--surface)" stroke-width="1.5"><title>EMA 0.9999 · 300k · 25.92 dB</title></circle>
+<text x="1080.0" y="177.1" text-anchor="end" fill="var(--k)" font-weight="600">EMA 0.9999 25.92</text>
+</svg><div class="legend"><span style="--c:var(--s4)">原始权重</span><span style="--c:var(--k)">EMA 0.9999</span><span class="dash">const / TRELLIS.2（虚线）</span></div></div>
+<p class="muted" style="max-width:860px;margin-top:-14px">val32 总计面积 PSNR（albedo + 金属度 + 粗糙度，1/16384 网格）。100k 后放开坍缩通道的 KL 并记 EMA，200k 后完全去掉 KL 和后验采样；三段都是真实续训。held-out 63 终评：26.90 / 27.05 / 31.98 dB（面积 / 面 / 资产中位数；const 26.76）。TRELLIS.2 纹理 VAE 在同样的点上是 26.80 dB，albedo 27.32 对 26.43，仍明显更好。</p>
+<div class="sub"><h3>最终模型一览</h3></div>
+<div class="table-wrap reveal"><table><tr><th>模型</th><th>通道</th><th>latent</th><th>评测集</th><th class="n">面积 PSNR</th><th class="n">const</th><th>页面</th></tr>
+<tr><td>Round P 基线，100k</td><td>albedo</td><td>注意力 8192 × 64</td><td>held-out 32</td><td class="n bad">24.67</td><td class="n">25.78</td><td><a href="index.html#s3">index</a></td></tr>
+<tr><td>旧模型 200k + 退火</td><td>albedo</td><td>注意力 8192 × 64</td><td>64 mesh 终评</td><td class="n">25.89</td><td class="n">—</td><td><a href="vae.html#s2">vae</a></td></tr>
+<tr><td>表 latent，28 点输入，50k + 退火</td><td>albedo</td><td>表 (8+1)×3×32</td><td>64 mesh 终评</td><td class="n">30.23</td><td class="n">—</td><td><a href="roundq.html#s8">roundq</a></td></tr>
+<tr><td>表 latent，91 点输入</td><td>albedo</td><td>表 (8+1)×3×16</td><td>64 mesh 终评（val32 32.43）</td><td class="n good">32.65</td><td class="n">—</td><td><a href="vae.html#s2">vae</a></td></tr>
+<tr><td>C5VAE 300k EMA（无 KL 续训）</td><td>albedo + 金属度 + 粗糙度</td><td>注意力 8192 × 64</td><td>held-out 63</td><td class="n">26.90（albedo 27.49）</td><td class="n">26.76</td><td><a href="ftpbr.html#s3-8">ftpbr 3.8</a></td></tr>
+<tr><td>TRELLIS.2 纹理 VAE（官方权重）</td><td>albedo + 金属度 + 粗糙度</td><td>稀疏体素</td><td>val32，同样的点</td><td class="n good">26.80（albedo 27.32）</td><td class="n">—</td><td><a href="ftpbr.html#s3-3b">ftpbr 3.3b</a></td></tr>
+</table></div>
+</div></section>
+
+<section id="demo"><div class="wrap">
+<div class="sec-head reveal"><div class="num">03 / 演示</div><div><h2>同一个 mesh，四个模型</h2>
+<p>共享相机的交互式对比：GT albedo、表 latent 91 点、5 通道 PBR VAE 300k、TRELLIS.2 纹理 VAE，都映射回原始 mesh 渲染（无光照）。拖动旋转、滚轮缩放；“单视图”可以放大看一个模型。</p></div></div>
+<div class="case reveal" data-uid="1aac7b79651d4bad96e49c13d3a8975e">
+<div class="casehead"><div><strong>Rippersnapper</strong> <span class="mono">1aac7b79</span> <span class="meta">5,746 面 · held-out</span></div><div class="meta">4 视角渲染 PSNR：表 latent 91 点 <b>24.6</b> · C5VAE 300k <b>24.6</b> · TRELLIS.2 <b>31.4</b> dB（旧注意力模型 21.0）</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/1aac7b79651d4bad96e49c13d3a8975e/thumb.jpg" alt="Rippersnapper 缩略图" width="480" height="480"><canvas aria-label="Rippersnapper 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT albedo</span><span>表 latent 91 点</span><span>C5VAE 300k（5 通道）</span><span>TRELLIS.2 纹理 VAE</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" checked> 自动旋转</label><label><input type="checkbox" class="single"> 单视图</label><span class="singlesel" hidden><label><input type="radio" name="m-1aac7b79" value="0" checked> GT albedo</label><label><input type="radio" name="m-1aac7b79" value="1"> 表 latent 91 点</label><label><input type="radio" name="m-1aac7b79" value="2"> C5VAE 300k（5 通道）</label><label><input type="radio" name="m-1aac7b79" value="3"> TRELLIS.2 纹理 VAE</label></span><button type="button" class="reset">重置视角</button><span class="hint">拖动旋转 · 滚轮缩放</span></div>
+</div>
+<div class="case reveal" data-uid="994aec4131c243dfa4cd2598e79eabaa">
+<div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec41</span> <span class="meta">48,270 面 · held-out</span></div><div class="meta">4 视角渲染 PSNR：表 latent 91 点 <b>31.3</b> · C5VAE 300k <b>31.2</b> · TRELLIS.2 <b>35.5</b> dB（旧注意力模型 27.3）</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="救护车 缩略图" width="480" height="480"><canvas aria-label="救护车 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels"><span>GT albedo</span><span>表 latent 91 点</span><span>C5VAE 300k（5 通道）</span><span>TRELLIS.2 纹理 VAE</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" checked> 自动旋转</label><label><input type="checkbox" class="single"> 单视图</label><span class="singlesel" hidden><label><input type="radio" name="m-994aec41" value="0" checked> GT albedo</label><label><input type="radio" name="m-994aec41" value="1"> 表 latent 91 点</label><label><input type="radio" name="m-994aec41" value="2"> C5VAE 300k（5 通道）</label><label><input type="radio" name="m-994aec41" value="3"> TRELLIS.2 纹理 VAE</label></span><button type="button" class="reset">重置视角</button><span class="hint">拖动旋转 · 滚轮缩放</span></div>
+</div>
+<div class="sub"><h3>细节裁剪：latent 结构决定了面内细节</h3></div>
+<figure class="figure reveal"><img src="vae/detail_1aac7b79.jpg" alt="Rippersnapper 细节裁剪：GT / 旧注意力模型 / 表 latent 28 点 / 表 latent 91 点" loading="lazy"><figcaption><b>Rippersnapper。</b>从左到右：GT、旧注意力模型 200k、表 latent 28 点、表 latent 91 点；标题里的数字是整张贴图和低 / 中 / 高频带的 PSNR。注意力 latent 把面内的线条平均成色块，表 latent 保住边缘，91 点输入再把中频带补回来。</figcaption></figure>
+<figure class="figure reveal"><img src="vae/detail_e610ab72.jpg" alt="舞蹈面具细节裁剪" loading="lazy"><figcaption><b>舞蹈面具。</b>同样的四列。更多案例和多视角渲染见 <a href="vae.html#s3">纹理 VAE 汇报 · 定性结果</a>，PBR 三通道的 10 个案例见 <a href="ftpbr.html#s3-5">ftpbr 3.5</a>。</figcaption></figure>
+</div></section>
+
+<section id="pages"><div class="wrap">
+<div class="sec-head reveal"><div class="num">04 / 实验报告</div><div><h2>六个阶段的详细页面</h2>
+<p>每页是一个阶段的完整实验记录：训练曲线、定量表、交互式 3D 对比和细节裁剪，数字都由生成脚本从训练产物实时读出。每页顶部有同一条导航栏（页面顺序 + 本页各节跳转），阅读顺序如下。</p></div></div>
+<div class="pages"><a class="pcard reveal" href="index.html"><div class="n">01</div><div><h3>Round P：Objaverse 全规模基线</h3><p>从 2.3 万双鞋扩展到 Objaverse 12 万个物体；按面类型的误差诊断；GT / 重建 / 均值的同屏 3D 对比；Round Q 对高频瓶颈的定位。</p><div class="meta"><span>实验 2026-10-11 → 10-14</span><span>页面更新 2026-10-27</span><span class="mono">index.html</span></div></div></a><a class="pcard reveal" href="roundq.html"><div class="n">02</div><div><h3>Round Q 续：表 latent</h3><p>把“latent 为什么丢面内细节”追到机制层面（排除 → 定位 → 构造），据此把 latent 改成按锚点、槽位、角点组织的表。</p><div class="meta"><span>实验 2026-10-14 → 10-17</span><span>页面更新 2026-10-19</span><span class="mono">roundq.html</span></div></div></a><a class="pcard reveal" href="oldmodel.html"><div class="n">03</div><div><h3>旧模型探索：采样密度</h3><p>注意力 latent 的旧模型是否被每面 28 个采样点、每步 8 个监督点限制：各训 10k 步对照；200k 模型在切分网格上的推理。</p><div class="meta"><span>实验 2026-10-19 → 10-26</span><span>页面更新 2026-10-27</span><span class="mono">oldmodel.html</span></div></div></a><a class="pcard reveal" href="vae.html"><div class="n">04</div><div><h3>纹理 VAE 汇报</h3><p>注意力 latent 与表 latent 的架构对照与汇总结果，按面数分档、3D 渲染 PSNR、推理时改锚点上限，三种定性对比。</p><div class="meta"><span>实验 2026-10-19 → 10-20</span><span>页面更新 2026-10-20</span><span class="mono">vae.html</span></div></div></a><a class="pcard reveal" href="ftpbr.html"><div class="n">05</div><div><h3>微调对照与 PBR VAE</h3><p>单变量微调 A–E；5 通道 PBR VAE 100k → 300k；TRELLIS.2 同口径对比；推理时加密锚点、细分面；latent 作用范围；KL 权重对照。</p><div class="meta"><span>实验 2026-10-23 → 进行中</span><span>页面更新 2026-11-12</span><span class="mono">ftpbr.html</span></div></div></a><a class="pcard reveal" href="dit.html"><div class="n">06</div><div><h3>纹理 DiT</h3><p>表 latent 上的扩散 transformer：面间一致性（“迪斯科球”问题）、图像条件、12 个版本的迭代与全规模训练。</p><div class="meta"><span>实验 2026-10-17 → 10-20</span><span>页面更新 2026-10-20</span><span class="mono">dit.html</span></div></div></a></div>
+</div></section>
+
+<section id="next"><div class="wrap">
+<div class="sec-head reveal"><div class="num">05 / 局限与下一步</div><div><h2>还差什么</h2></div></div>
+<div class="cards c3 reveal">
+<div class="card"><h3>PBR VAE 仍落后于 TRELLIS.2</h3><p>5 通道 C5VAE 用的还是注意力 latent，held-out 只比每面平均色高 0.1 dB；TRELLIS.2 的稀疏体素纹理 VAE 在同样的点上高出约 0.9 dB。表 latent 在 albedo 上的 +7.7 dB 还没有搬到 PBR 配方上。</p></div>
+<div class="card"><h3>KL 与 latent 容量</h3><p>从头训 20k 的 KL 权重对照（1e-4 / 3e-5 / 1e-5 / 0）重建质量相同，只改变存活通道数和 latent 尺度：坍缩的通道是冗余容量，不是损失。单个 latent token 的作用范围、推理时加密锚点和按纹理细分面的实验见 ftpbr 3.9–3.12。</p></div>
+<div class="card"><h3>进行中</h3><ul><li><b>形状分支：</b>Lafite / NaTex 式的"白模"分支，把几何信息从纹理 latent 里分出来；零训练探针显示约 1/3 的纹理 latent 方差可由几何预测。≤ 8192 面子集上的 10k 步对照（基线 / query / fuse / 共享权重）正在跑。</li><li><b>DiT 全规模：</b>图像条件的表 latent DiT 在完整 Objaverse 上训练中，小规模版本 23.0 dB。</li></ul></div>
+</div>
+</div></section>
+
+<footer><div class="wrap"><span>TriTex · 实验报告站 <a href="https://caesarrwang.github.io/tritexture/">https://caesarrwang.github.io/tritexture</a></span><span>生成脚本 build_overview_page.py；数据 Objaverse 1.0（CC-BY 资产署名见仓库 README）</span><span>页面更新 2026-11-12</span></div></footer>
+<div class="lb" id="lb"><img alt=""></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  if (!window.THREE) return;
+  const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  if (!canWebGL) return;
+  const NAMES = ['gt_dil', 'recon_t91', 'recon_pbrdet_alb', 'recon_trellis_alb'];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function initCase(el) {
+    const uid = el.dataset.uid, canvas = el.querySelector('canvas'), poster = el.querySelector('.poster'), msg = el.querySelector('.loadmsg');
+    msg.hidden = false;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setScissorTest(true);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50); const HOME = new THREE.Vector3(0.95, 0.55, 1.75); camera.position.copy(HOME);
+    const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = !reduced; controls.dampingFactor = 0.08; controls.target.set(0, 0, 0);
+    const spinBox = el.querySelector('.spin'); if (reduced) spinBox.checked = false;
+    controls.autoRotate = spinBox.checked; controls.autoRotateSpeed = 1.2; let resumeT = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(resumeT); });
+    controls.addEventListener('end', () => { clearTimeout(resumeT); resumeT = setTimeout(() => { controls.autoRotate = spinBox.checked; }, 3000); });
+    spinBox.addEventListener('change', () => { controls.autoRotate = spinBox.checked; });
+    const tl = new THREE.TextureLoader(); const tex = NAMES.map(n => { const t = tl.load(`cases/${uid}/${n}.jpg`, () => render()); t.encoding = THREE.sRGBEncoding; t.flipY = false; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; });
+    const unlit = tex.map(t => new THREE.MeshBasicMaterial({ map: t, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
+    const wireMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x111111, transparent: true, opacity: 0.45, depthWrite: false }); const wires = [];
+    const wireBox = el.querySelector('.wire'); wireBox.addEventListener('change', () => { wires.forEach(w => { w.visible = wireBox.checked; }); needs = true; });
+    let mesh = null, single = false, which = 0, visible = true, needs = true;
+    new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
+      const ms = []; g.scene.traverse(o => { if (o.isMesh) ms.push(o); });   // collect first: adding children inside traverse() recurses into them
+      ms.forEach(o => { if (!mesh) mesh = o; o.material = unlit[0]; const w = new THREE.Mesh(o.geometry, wireMat); w.visible = wireBox.checked; wires.push(w); o.add(w); });
+      scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
+    }, undefined, () => { msg.textContent = '模型加载失败，显示缩略图'; });
+    function size() {
+      const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+      if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) renderer.setSize(w, h, false);
+      return [w, h];
+    }
+    function render() {
+      const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = unlit;
+      if (single) {
+        camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h); mesh.material = mats[which]; renderer.render(scene, camera);
+      } else {
+        const NP = NAMES.length, vw = Math.floor(w / NP); camera.aspect = vw / h; camera.updateProjectionMatrix();
+        for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, 0, vw, h); renderer.setScissor(i * vw, 0, vw, h); mesh.material = mats[i]; renderer.render(scene, camera); }
+      }
+    }
+    function loop() { if (!visible) return; controls.update(); render(); requestAnimationFrame(loop); }
+    controls.addEventListener('change', () => { needs = true; });
+    const sel = el.querySelector('.singlesel'); el.querySelector('.single').addEventListener('change', e => { single = e.target.checked; sel.hidden = !single; el.querySelector('.vlabels').style.visibility = single ? 'hidden' : 'visible'; });
+    sel.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', e => { which = +e.target.value; }));
+    el.querySelector('.reset').addEventListener('click', () => { camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update(); });
+    new ResizeObserver(() => { needs = true; }).observe(canvas);
+    const io = new IntersectionObserver(es => { es.forEach(x => { const was = visible; visible = x.isIntersecting; if (visible && !was) loop(); }); }, { rootMargin: '200px' });
+    io.observe(el); loop();
+  }
+  const pending = new IntersectionObserver(es => { es.forEach(x => { if (x.isIntersecting) { pending.unobserve(x.target); initCase(x.target); } }); }, { rootMargin: '600px' });
+  document.querySelectorAll('.case').forEach(el => pending.observe(el));
+})();
+
+</script>
+
+<script>
+(function(){
+  const secs=[...document.querySelectorAll('section[id],header[id]')],links=[...document.querySelectorAll('nav li a[href^="#"]')];
+  function act(){let cur='';const y=scrollY+120;secs.forEach(s=>{if(s.offsetTop<=y)cur=s.id});links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur))}
+  addEventListener('scroll',act,{passive:true});act();
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  setTimeout(()=>document.querySelectorAll('.reveal:not(.in)').forEach(el=>el.classList.add('in')),1200);
+  const lb=document.getElementById('lb'),lbi=lb.querySelector('img');
+  document.querySelectorAll('.figure img,.hero-media img').forEach(im=>im.addEventListener('click',()=>{lbi.src=im.src;lb.classList.add('on')}));
+  lb.addEventListener('click',()=>lb.classList.remove('on'));addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on')});
+})();
+</script>
+</body></html>

@@ -1,13 +1,14 @@
 TriTex · 原生网格上的逐面纹理 VAE 与纹理生成
 =============================================
 
-**在线页面：https://caesarrwang.github.io/tritexture/** — 本地预览直接用浏览器打开各 `.html`（3D 查看器需要通过 http 访问，可 `python -m http.server`）。
+**在线页面：https://caesarrwang.github.io/tritexture/overview.html（总览） · https://caesarrwang.github.io/tritexture/（Round P 报告）** — 本地预览直接用浏览器打开各 `.html`（3D 查看器需要通过 http 访问，可 `python -m http.server`）。
 
 快速导航
 --------
 
 | 页面 | 内容 | 实验时间 | 最近更新 |
 |---|---|---|---|
+| [项目总览（展示页）](https://caesarrwang.github.io/tritexture/overview.html) | 一页看完整个项目：方法、六个阶段的主结论、交互式 3D 对比、各报告页面的导航 | 2026-10-11 → 进行中 | 2026-11-12 |
 | [Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html) | 从 2.3 万双鞋扩展到 Objaverse 12 万个物体；误差诊断；GT / 重建 / 均值 3D 对比 | 2026-10-11 → 10-14 | 2026-10-27 |
 | [Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html) | latent 丢面内细节的机制定位；表 latent 设计与全规模结果 | 2026-10-14 → 10-17 | 2026-10-19 |
 | [旧模型探索：采样密度](https://caesarrwang.github.io/tritexture/oldmodel.html) | 输入点 / 监督点 / 大面切分的 10k 步对照 | 2026-10-19 → 10-26 | 2026-10-27 |
@@ -22,6 +23,7 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
 
 按阅读顺序（也是实验的时间顺序）。表中的实验时间取自各页正文记录的日期和首次提交日期，最近更新是该页文件的最后一次提交：
 
+*   **[项目总览](https://caesarrwang.github.io/tritexture/overview.html)** — `overview.html` — 展示页：一句话概括与流程图、方法要点、六个阶段各一个主结论数字、5 通道 PBR VAE 的完整训练曲线与最终模型一览、同一 mesh 上四个模型的交互式 3D 对比、各报告页面的导航、局限与下一步。
 *   **[Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html)** — `index.html` — 把纹理 VAE 从 2.3 万双鞋扩展到 Objaverse 12 万个物体（4 节点 × 4 × H100，10 万步）。数据筛选、训练曲线、按面类型的误差诊断、GT / 重建 / 逐面均值的同屏 3D 对比，以及 Round Q 对高频瓶颈的定位。
 *   **[Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html)** — `roundq.html` — 把"latent 为什么丢面内细节"追到机制层面（排除 → 定位 → 构造），据此把 latent 从 8192 个注意力向量改成按锚点、槽位、角点组织的表。小规模验证与全规模结果（held-out 25.89 → 28.83 dB）。
 *   **[旧模型探索：采样密度](https://caesarrwang.github.io/tritexture/oldmodel.html)** — `oldmodel.html` — 注意力 latent 的旧模型是否被每面 28 个采样点、每步 8 个监督点限制：加大输入点、监督点、递归切分大面，各训 10k 步对照；200k 模型在切分网格上的推理。
@@ -34,6 +36,7 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
 目录
 ----
 
+    overview.html         项目总览（展示页）
     index.html            Round P 报告（入口）
     roundq.html           Round Q 续：表 latent
     oldmodel.html         旧模型采样密度探索
@@ -41,13 +44,14 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
     ftpbr.html            微调对照与 PBR VAE
     dit.html              纹理 DiT
     cases/<uid>/          交互式 3D 对比用的资产：几何 .glb、GT / 重建 / 基线贴图、锚点点云、切分网格、latent 影响图
+    overview/             展示页的合成图
     ftpbr/ vae/ dit/ oldmodel/ roundq/   各页的静态图：训练曲线、多视角渲染、细节裁剪、架构图
     README.md             本文件
 
 生成
 ----
 
-页面由 TriTex 代码库 `outputs/report/` 下的脚本生成，每页一个：`build_report.py`（index）、`build_roundq_page.py`、`build_oldmodel_page.py`、`build_vae_page.py`、`build_ft_pbr_page.py`、`build_dit_page.py`，公共样式、图表和 3D 查看器在 `report_common.py`。贴图和 3D 资产由 `scripts/cases_vis_pbr.py`、`scripts/bake_and_view.py`、`scripts/latent_influence_bake.py` 等烘焙到 `cases/`。重新生成某页只需在代码库根目录运行对应脚本，再提交本仓库。
+页面由 TriTex 代码库 `outputs/report/` 下的脚本生成，每页一个：`build_overview_page.py`（overview）、`build_report.py`（index）、`build_roundq_page.py`、`build_oldmodel_page.py`、`build_vae_page.py`、`build_ft_pbr_page.py`、`build_dit_page.py`，公共样式、图表和 3D 查看器在 `report_common.py`。贴图和 3D 资产由 `scripts/cases_vis_pbr.py`、`scripts/bake_and_view.py`、`scripts/latent_influence_bake.py` 等烘焙到 `cases/`。重新生成某页只需在代码库根目录运行对应脚本，再提交本仓库。
 
 引用
 ----
