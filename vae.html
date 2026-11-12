@@ -58,6 +58,10 @@ p.small{font-size:13px;color:var(--fg2)}
 @media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
 footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+.sitenav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding:8px 0;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.sitenav a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap} .sitenav a:hover{border-color:var(--line);background:var(--surface)}
+.sitenav .home{font-weight:600;border-color:var(--line)} .sitenav .cur{font-weight:700;color:var(--fg);background:var(--accent-soft);border-color:var(--line)} .sitenav .lbl,.sitenav .arr{color:var(--fg2)}
+.sitenav .pn{margin-left:auto;display:flex;gap:6px} .sitenav .pn a{border-color:var(--line)}
 </style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
 <style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
 .texpair.four{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none} .texpair.four figcaption{font-size:12px} .vlabels.four{grid-template-columns:repeat(4,1fr)} .case .canvaswrap{aspect-ratio:4/1.25} @media (max-width:700px){.case .canvaswrap{aspect-ratio:4/2} .vlabels.four{font-size:11px}} details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px} details[open] summary{margin-bottom:8px}
@@ -66,7 +70,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续：证据链</a><a href="dit.html">DiT 生成模型 →</a><a href="oldmodel.html">旧模型探索 →</a></p>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><span class="cur">4 · 纹理 VAE 汇报</span><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="oldmodel.html" title="3 · 旧模型采样密度">← 上一篇</a><a href="ftpbr.html" title="5 · 微调对照与 PBR VAE">下一篇 →</a></span></nav>
 <p class="eyebrow">TriTex · per-triangle texture VAE · 2026-10-19</p>
 <h1>纹理 VAE：从注意力 latent 到表 latent</h1>
 <p class="sub">把 latent 从"8192 个靠注意力读写的向量"改成"按锚点、槽位、角点组织、按下标读写的表"，再把编码器输入从每面 28 点加到 91 点。完整 Objaverse（≤ 20 万面）上，held-out 面积 PSNR 从旧模型最好的 24.73 dB 升到 32.43 dB（val 前 32 个 mesh）；64 个 mesh 的终评从 25.89 升到 32.65 dB。</p>

@@ -58,6 +58,10 @@ p.small{font-size:13px;color:var(--fg2)}
 @media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
 footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+.sitenav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding:8px 0;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.sitenav a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap} .sitenav a:hover{border-color:var(--line);background:var(--surface)}
+.sitenav .home{font-weight:600;border-color:var(--line)} .sitenav .cur{font-weight:700;color:var(--fg);background:var(--accent-soft);border-color:var(--line)} .sitenav .lbl,.sitenav .arr{color:var(--fg2)}
+.sitenav .pn{margin-left:auto;display:flex;gap:6px} .sitenav .pn a{border-color:var(--line)}
 </style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
 <style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
 .texpair.three{grid-template-columns:repeat(3,minmax(0,1fr));max-width:none} .texpair.three figcaption{font-size:12px} .case .canvaswrap{aspect-ratio:3/1.25}
@@ -66,7 +70,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px} details.more summary{cursor:pointer;font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="roundq.html">Round Q 续</a><a href="vae.html">纹理 VAE 汇报</a><a href="dit.html">纹理 DiT 汇报</a><a href="ftpbr.html">微调对照与 PBR</a></p>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><span class="cur">3 · 旧模型采样密度</span><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="roundq.html" title="2 · Round Q 续：表 latent">← 上一篇</a><a href="vae.html" title="4 · 纹理 VAE 汇报">下一篇 →</a></span></nav>
 <p class="eyebrow">TriTex · attention-latent VAE · 2026-10-19 至 10-20</p>
 <h1>旧模型探索：采样点、监督点与大面切分</h1>
 <p class="sub">问题：注意力 latent 的旧模型，是不是被每面 28 个采样点、每步只监督 8 个点限制住了？做法：在 ≤ 8192 面子集上以同一配方各训 10k 步，分别加大输入采样点、监督点，以及把大面递归切小；再把练到 200k 的模型放到切分后的 mesh 上推理。</p>

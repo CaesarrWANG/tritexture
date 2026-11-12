@@ -58,12 +58,16 @@ p.small{font-size:13px;color:var(--fg2)}
 @media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
 footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+.sitenav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding:8px 0;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.sitenav a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap} .sitenav a:hover{border-color:var(--line);background:var(--surface)}
+.sitenav .home{font-weight:600;border-color:var(--line)} .sitenav .cur{font-weight:700;color:var(--fg);background:var(--accent-soft);border-color:var(--line)} .sitenav .lbl,.sitenav .arr{color:var(--fg2)}
+.sitenav .pn{margin-left:auto;display:flex;gap:6px} .sitenav .pn a{border-color:var(--line)}
 </style><style>.legend span::before{background:var(--c,var(--fg2))}</style>
 <style>.imgfig img{border:1px solid var(--line)} .defs dt{font-weight:600;margin-top:8px} .defs dd{margin:2px 0 0 0;color:var(--fg2);max-width:72ch} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent)}
 .chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0} .chain .tile .v{font-size:17px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Round Q 报告（鞋 → Objaverse，瓶颈定位）</a> · <a href="vae.html">纹理 VAE 汇报 →</a> · <a href="dit.html">纹理 DiT 汇报 →</a></p>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><span class="cur">2 · Round Q 续：表 latent</span><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="index.html" title="1 · Round P 基线">← 上一篇</a><a href="oldmodel.html" title="3 · 旧模型采样密度">下一篇 →</a></span></nav>
 <p class="eyebrow">TriTex · per-triangle texture VAE · 实验汇报 · 2026-10-14 至 10-17</p>
 <h1>Round Q 续：从"概括"到"登记"——latent 结构的重新设计</h1>
 <p class="sub">三天内把"latent 为什么丢面内细节"追到机制层面，并据此把 latent 从"8192 个注意力向量"改成"按锚点、槽位、角点组织的表"。全规模结果：held-out 从旧模型最好的 25.89 dB 升到 28.83 dB，离 28 点输入的上界 29.08 只差 0.25。</p>

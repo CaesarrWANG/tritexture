@@ -56,6 +56,10 @@ p.small{font-size:13px;color:var(--fg2)}
 .texpair figcaption{font-size:12px;color:var(--fg2);margin-top:4px;text-align:center}
 
 @media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
+.sitenav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding:8px 0;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.sitenav a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap} .sitenav a:hover{border-color:var(--line);background:var(--surface)}
+.sitenav .home{font-weight:600;border-color:var(--line)} .sitenav .cur{font-weight:700;color:var(--fg);background:var(--accent-soft);border-color:var(--line)} .sitenav .lbl,.sitenav .arr{color:var(--fg2)}
+.sitenav .pn{margin-left:auto;display:flex;gap:6px} .sitenav .pn a{border-color:var(--line)}
 footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
 </style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
@@ -63,7 +67,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="vae.html">← 纹理 VAE</a><a href="oldmodel.html">旧模型探索 →</a></p>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><span class="cur">6 · 纹理 DiT</span><span class="pn"><a href="ftpbr.html" title="5 · 微调对照与 PBR VAE">← 上一篇</a></span></nav>
 <p class="eyebrow">TriTex · texture DiT on the table latent · 2026-10-17 至 10-19</p>
 <h1>纹理生成：表 latent 上的 DiT</h1>
 <p class="sub">给定 mesh 和若干视角的图像，生成每个面的纹理。12 个版本的迭代先解决"生成结果像迪斯科球"（面与面颜色互不相关），再接入图像条件；小规模版本的采样结果对真值从 11.6 dB 提到 22–23 dB，全规模训练进行中。</p>

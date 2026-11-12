@@ -56,6 +56,10 @@ p.small{font-size:13px;color:var(--fg2)}
 .texpair figcaption{font-size:12px;color:var(--fg2);margin-top:4px;text-align:center}
 
 @media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
+.sitenav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding:8px 0;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.sitenav a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap} .sitenav a:hover{border-color:var(--line);background:var(--surface)}
+.sitenav .home{font-weight:600;border-color:var(--line)} .sitenav .cur{font-weight:700;color:var(--fg);background:var(--accent-soft);border-color:var(--line)} .sitenav .lbl,.sitenav .arr{color:var(--fg2)}
+.sitenav .pn{margin-left:auto;display:flex;gap:6px} .sitenav .pn a{border-color:var(--line)}
 footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
 </style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
@@ -65,7 +69,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px} details.more summary{cursor:pointer;font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
 </head><body><div class="wrap">
 <header>
-<p class="nav"><a href="index.html">← Round P / Q 主报告</a><a href="vae.html">纹理 VAE 汇报</a><a href="oldmodel.html">旧模型探索</a><a href="dit.html">纹理 DiT 汇报</a></p>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><span class="cur">5 · 微调对照与 PBR VAE</span><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="vae.html" title="4 · 纹理 VAE 汇报">← 上一篇</a><a href="dit.html" title="6 · 纹理 DiT">下一篇 →</a></span></nav>
 <p class="eyebrow">TriTex · attention-latent VAE · 2026-10-23 至 11-02</p>
 <h1>单变量微调对照（A–E）与 PBR VAE</h1>
 <p class="sub">两组实验：（1）从 1/8192 切分主线的 100k 权重出发，各改一个变量再训 30k 步，看输入采样点、格点 IO、更细切分、混合采样有没有增益；（2）在同一套配方上加入金属度和粗糙度，从头训一个 5 通道的 PBR VAE 到 100k；（3）把 PBR VAE 从 100k 续训到 200k，放开坍缩通道的 KL 并加 EMA。</p>
