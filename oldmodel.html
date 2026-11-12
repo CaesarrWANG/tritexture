@@ -68,9 +68,11 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 @media (max-width:700px){.case .canvaswrap{aspect-ratio:3/2}}
 .stack{display:grid;grid-template-columns:1fr;gap:18px;margin:14px 0} .stack figure{width:100%} .stack figure img{width:100%;height:auto;display:block}
 details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px} details.more summary{cursor:pointer;font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
-</head><body><div class="wrap">
+<style>.sitenav .secrow{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-top:6px;margin-top:2px;border-top:1px dashed var(--line);font-size:12.5px}
+.sitenav .secrow .lbl{margin-right:2px}.sitenav .secrow a{padding:2px 7px;border-color:var(--line);color:var(--fg2)}.sitenav .secrow a.sub{border-style:dashed;font-size:12px}
+.sitenav .secrow a.on{color:var(--fg);background:var(--accent-soft);font-weight:600}h2,h3{scroll-margin-top:110px}</style></head><body><div class="wrap">
 <header>
-<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><span class="cur">3 · 旧模型采样密度</span><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="roundq.html" title="2 · Round Q 续：表 latent">← 上一篇</a><a href="vae.html" title="4 · 纹理 VAE 汇报">下一篇 →</a></span></nav>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><span class="cur">3 · 旧模型采样密度</span><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="roundq.html" title="2 · Round Q 续：表 latent">← 上一篇</a><a href="vae.html" title="4 · 纹理 VAE 汇报">下一篇 →</a></span><span class="secrow"><span class="lbl">本页跳转：</span><a href="#s1" class="top" title="1. 实验设计">1 实验设计</a><a href="#s2" class="top" title="2. 定量结果">2 定量结果</a><a href="#s3" class="top" title="3. 定性结果：200k + 退火模型，原始 mesh 与大面切分">3 定性结果</a><a href="#s4" class="top" title="4. 结论">4 结论</a><a href="#s5" class="top" title="5. 后续计划的四点与进展（2026-10-21）">5 后续计划的四点与进展</a><a href="#s6" class="top" title="6. 训练中的全规模运行：10 个案例的中间快照">6 训练中的全规模运行</a></span></nav>
 <p class="eyebrow">TriTex · attention-latent VAE · 2026-10-19 至 10-20</p>
 <h1>旧模型探索：采样点、监督点与大面切分</h1>
 <p class="sub">问题：注意力 latent 的旧模型，是不是被每面 28 个采样点、每步只监督 8 个点限制住了？做法：在 ≤ 8192 面子集上以同一配方各训 10k 步，分别加大输入采样点、监督点，以及把大面递归切小；再把练到 200k 的模型放到切分后的 mesh 上推理。</p>
@@ -83,11 +85,11 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 </div>
 <div class="callout"><p><strong>结论：</strong>在 10k 步内，加采样点、加监督点都没有让旧模型越过 const；大面切分带来的提升与 const 自身的位移相当。练够的 200k + 退火模型在小 mesh 上离 28 点插值上界只差 1 dB，推理时切分能再拿到超出 const 位移的真实增益。10k 步的实验只能说明早期学习不受点数限制，练够之后点数是否成为上限，需要在 200k 权重上微调 91 点输入才能回答。</p></div>
 
-<h2>1. 实验设计</h2>
+<h2 id="s1">1. 实验设计</h2>
 <div class="tablewrap"><table><tr><th>实验</th><th>输入采样 / 面</th><th>每步进损失的输出点</th><th>输出 / 面</th><th>数据</th><th>步数</th></tr><tr><td>28 点采样 + 随机 8 点步损失 + 91 点输出（旧对照）</td><td>28</td><td>随机 8</td><td>91</td><td>原始</td><td>10k</td></tr><tr><td>28 点采样 + 91 点步损失 + 91 点输出</td><td>28</td><td>91</td><td>91</td><td>原始</td><td>10k</td></tr><tr><td>91 点采样 + 91 点步损失 + 91 点输出</td><td>91</td><td>91</td><td>91</td><td>原始</td><td>10k</td></tr><tr><td>105 点采样 + 378 点步损失 + 378 点输出</td><td>105</td><td>378</td><td>378（阶 26 格点缓存）</td><td>原始</td><td>10k</td></tr><tr><td>28 点采样 + 91 点步损失 + 91 点输出 + 大面切分重训</td><td>28</td><td>91</td><td>91</td><td>切分缓存（面数 ×2.7）</td><td>10k</td></tr><tr><td>200k / 200k + 退火（完整数据旧配方）</td><td>28</td><td>随机 8</td><td>91</td><td>完整数据，推理时切分</td><td>200k / 210k</td></tr></table></div>
 <p class="small">模型全部为旧配方：8192 个表面 FPS 锚点、64 维 latent、编码与解码均为交叉注意力、格点面编解码器。大面切分：面积超过总表面积 1/2048 的面按三边中点一分为四，递归到全部低于阈值；子面的纹理仍从父面 UV 采样。≤ 8192 面子集上面数中位数变为 2.7 倍，完整数据的 32 个验证 mesh 只增加 0.5% 的面。</p>
 
-<h2>2. 定量结果</h2>
+<h2 id="s2">2. 定量结果</h2>
 <h3>2.1 训练曲线</h3>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 680 320" width="100%" role="img" aria-label="≤ 8192 面子集，val 前 32 个：area-PSNR (dB)，训练中评测" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">≤ 8192 面子集，val 前 32 个：area-PSNR (dB)，训练中评测</text>
@@ -151,7 +153,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <div class="tablewrap"><table><tr><th>模型</th><th class=n>原始 mesh</th><th class=n>大面切分</th><th class=n>增益</th></tr><tr><td>const 参照</td><td class=n>24.10</td><td class=n>24.92</td><td class=n>+0.82</td></tr><tr><td>28 点 interp 上界</td><td class=n>29.20</td><td class=n>30.48</td><td class=n>+1.28</td></tr><tr><td>200k + 退火</td><td class=n>24.71</td><td class=n>25.35</td><td class=n>+0.64</td></tr></table></div>
 <p class="small">完整数据的 val 前 32 个 mesh（含最多 13 万面的 mesh）。切分只增加 0.5% 的面，但 const 仍涨 0.8 dB，说明面积 PSNR 被少数巨大的面主导。这里模型的增益小于 const 的位移，和小子集上 200k 模型的表现（+2.76 对 +2.17）相反，差别来自大 mesh 上巨大面所占的比例。</p>
 
-<h2>3. 定性结果：200k + 退火模型，原始 mesh 与大面切分</h2>
+<h2 id="s3">3. 定性结果：200k + 退火模型，原始 mesh 与大面切分</h2>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 980 300" width="100%" role="img" aria-label="10 个展示案例：4 视角渲染图前景像素 PSNR (dB)，200k + 退火" style="max-width:980px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">10 个展示案例：4 视角渲染图前景像素 PSNR (dB)，200k + 退火</text>
 <line x1="44" x2="966" y1="260.0" y2="260.0" stroke="var(--grid)"/>
@@ -357,7 +359,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <div class="tablewrap"><table><tr><th>案例</th><th class=n>面数</th><th class=n>原始 mesh：全部 / 高频</th><th class=n>大面切分：全部 / 高频</th></tr><tr><td>Spider-Man</td><td class=n>99,208</td><td class=n>23.9 / 29.6</td><td class=n pos>24.2 / 29.6</td></tr><tr><td>Soldier</td><td class=n>31,263</td><td class=n>21.3 / 31.2</td><td class=n pos>21.9 / 31.1</td></tr><tr><td>救护车</td><td class=n>48,270</td><td class=n>27.0 / 31.3</td><td class=n pos>28.2 / 31.2</td></tr><tr><td>Enternity Demon</td><td class=n>50,026</td><td class=n>30.3 / 36.4</td><td class=n pos>30.6 / 36.3</td></tr><tr><td>Hello Neighbor</td><td class=n>23,610</td><td class=n>24.6 / 28.0</td><td class=n>24.5 / 28.0</td></tr><tr><td>舞蹈面具</td><td class=n>8,046</td><td class=n>25.4 / 27.2</td><td class=n pos>25.5 / 27.3</td></tr><tr><td>Rippersnapper</td><td class=n>5,746</td><td class=n>20.3 / 23.8</td><td class=n pos>21.0 / 23.9</td></tr><tr><td>Shadowsun</td><td class=n>7,434</td><td class=n>24.4 / 27.3</td><td class=n pos>24.9 / 27.5</td></tr><tr><td>Dog</td><td class=n>33,384</td><td class=n>27.9 / 29.4</td><td class=n pos>27.9 / 29.4</td></tr><tr><td>Bee</td><td class=n>51,731</td><td class=n>23.5 / 25.4</td><td class=n pos>23.7 / 25.4</td></tr></table></div>
 <div class="stack"><figure class="imgfig"><img src="oldmodel/detail_994aec41.jpg" alt="救护车 细节裁剪" loading="lazy"><figcaption><strong>救护车</strong> · 裁剪区 PSNR 原始 27.0 / 大面切分 28.2 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_e610ab72.jpg" alt="舞蹈面具 细节裁剪" loading="lazy"><figcaption><strong>舞蹈面具</strong> · 裁剪区 PSNR 原始 25.4 / 大面切分 25.5 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_9a77cdf9.jpg" alt="Dog 细节裁剪" loading="lazy"><figcaption><strong>Dog</strong> · 裁剪区 PSNR 原始 27.9 / 大面切分 27.9 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_60ef2e59.jpg" alt="Bee 细节裁剪" loading="lazy"><figcaption><strong>Bee</strong> · 裁剪区 PSNR 原始 23.5 / 大面切分 23.7 dB</figcaption></figure></div><details class="more"><summary>展开其余 6 个案例（同样的三列布局）</summary><div class="stack"><figure class="imgfig"><img src="oldmodel/detail_522f50ca.jpg" alt="Spider-Man 细节裁剪" loading="lazy"><figcaption><strong>Spider-Man</strong> · 裁剪区 PSNR 原始 23.9 / 大面切分 24.2 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_67468672.jpg" alt="Soldier 细节裁剪" loading="lazy"><figcaption><strong>Soldier</strong> · 裁剪区 PSNR 原始 21.3 / 大面切分 21.9 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_ecbab41a.jpg" alt="Enternity Demon 细节裁剪" loading="lazy"><figcaption><strong>Enternity Demon</strong> · 裁剪区 PSNR 原始 30.3 / 大面切分 30.6 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_53bf4971.jpg" alt="Hello Neighbor 细节裁剪" loading="lazy"><figcaption><strong>Hello Neighbor</strong> · 裁剪区 PSNR 原始 24.6 / 大面切分 24.5 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_1aac7b79.jpg" alt="Rippersnapper 细节裁剪" loading="lazy"><figcaption><strong>Rippersnapper</strong> · 裁剪区 PSNR 原始 20.3 / 大面切分 21.0 dB</figcaption></figure><figure class="imgfig"><img src="oldmodel/detail_209865ec.jpg" alt="Shadowsun 细节裁剪" loading="lazy"><figcaption><strong>Shadowsun</strong> · 裁剪区 PSNR 原始 24.4 / 大面切分 24.9 dB</figcaption></figure></div></details>
 
-<h2>4. 结论</h2>
+<h2 id="s4">4. 结论</h2>
 <ul>
 <li><strong>监督密度不是瓶颈。</strong>每步监督点从随机 8 个改成全部 91 个，10k 步只高 0.4 dB。</li>
 <li><strong>输入采样密度在 10k 步内不是瓶颈。</strong>28 → 91 → 105 点，上界从 27 抬到 36 以上，模型反而略降。</li>
@@ -365,7 +367,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 <li><strong>10k 步不足以下结论。</strong>网络先学低频再学高频，这个阶段看不出采样率对高频纹理的作用；练够的 200k + 退火模型在小 mesh 上离 28 点上界只差 1 dB，到那时点数才可能成为上限。</li>
 </ul>
 
-<h2>5. 后续计划的四点与进展（2026-10-21）</h2>
+<h2 id="s5">5. 后续计划的四点与进展（2026-10-21）</h2>
 <h3>5.1 切分改为在线进行？</h3>
 <p><strong>可以，已实现并验证。</strong>切分本身很便宜，关键是子面在新位置的采样点要重新从贴图上采。当初建缓存每个 mesh 要 1–2 秒，但分解后发现贵的不是贴图：</p>
 <div class="tablewrap"><table><tr><th>面数</th><th class=n>读 GLB + 解码贴图</th><th class=n>为 1% 的面采 91 点</th><th class=n>顶点焊接 + 自交切割</th><th class=n>谱分解</th></tr><tr><td>1,499</td><td class=n>0.03 s</td><td class=n>0.011 s</td><td class=n>0.08 s</td><td class=n>0.03 s</td></tr><tr><td>2,756</td><td class=n>0.14 s</td><td class=n>0.034 s</td><td class=n>0.71 s</td><td class=n>0.48 s</td></tr><tr><td>16,051</td><td class=n>0.17 s</td><td class=n>0.003 s</td><td class=n>1.32 s</td><td class=n>0.38 s</td></tr><tr><td>72,913</td><td class=n>0.05 s</td><td class=n>0.006 s</td><td class=n>0.31 s</td><td class=n>4.99 s</td></tr><tr><td>76,500</td><td class=n>0.05 s</td><td class=n>0.005 s</td><td class=n neg>16.2 s</td><td class=n neg>11.2 s</td></tr><tr><td>137,024</td><td class=n>0.13 s</td><td class=n>0.010 s</td><td class=n>1.08 s</td><td class=n>1.93 s</td></tr></table></div>
@@ -544,7 +546,7 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 （3）1/16384 切分训练（D）无增益：D 训练时看起来高约 0.3 dB，完全来自评测网格更细更容易；纵向看，D 在 1/16384 网格上从起点 25.27 涨到 25.42（+0.15），B 在 1/8192 网格上从 24.65 涨到 24.94（+0.29），而 B 直接拿到 1/16384 网格上推理是 25.53。
 （4）切分的收益在推理时就能拿到：同一个 B 模型，评测网格从 1/8192 换成 1/16384 就涨 0.6 dB，不需要重训。
 （5）+0.3 dB 左右的共同涨幅来自多训 30k 步与优化器重置，与改动无关。</p>
-<h2>6. 训练中的全规模运行：10 个案例的中间快照</h2>
+<h2 id="s6">6. 训练中的全规模运行：10 个案例的中间快照</h2>
 <p>第 5.4 节的运行用当前快照看定性效果，和旧模型 200k + 退火并排。训练中的模型在自己的输入方式下评测（1/8192 在线切分后的 mesh），旧模型在原始 mesh 上评测。快照：28 点采样 + 91 点步损失 + 1/8192 切分 在 100k / 200k，数字会随训练更新。</p>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 980 300" width="100%" role="img" aria-label="10 个展示案例：4 视角渲染图前景像素 PSNR (dB)，训练中的模型与旧模型" style="max-width:980px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">10 个展示案例：4 视角渲染图前景像素 PSNR (dB)，训练中的模型与旧模型</text>
@@ -802,4 +804,6 @@ details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line)
 document.querySelectorAll('.texzoom').forEach(b => b.addEventListener('click', () => { const g = b.closest('.texpanel').querySelector('.texpair'); const big = g.classList.toggle('big'); b.textContent = big ? '缩小' : '放大'; }));
 </script>
 
-</body></html>
+<script>(function(){var L=[].slice.call(document.querySelectorAll('.sitenav .secrow a[href^="#"]'));if(!L.length)return;var H=L.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function upd(){var y=window.scrollY+120,k=-1;for(var i=0;i<H.length;i++){if(H[i]&&H[i].offsetTop<=y)k=i}L.forEach(function(a,i){a.classList.toggle('on',i===k)})}
+window.addEventListener('scroll',upd,{passive:true});window.addEventListener('load',upd);upd()})()</script></body></html>

@@ -68,9 +68,11 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 .arch img{border:1px solid var(--line);border-radius:8px}
 .stack{display:grid;grid-template-columns:1fr;gap:18px;margin:14px 0} .stack figure{width:100%} .stack figure img{width:100%;height:auto;display:block}
 details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(--accent)} details.more .stack{margin-top:12px}</style>
-</head><body><div class="wrap">
+<style>.sitenav .secrow{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-top:6px;margin-top:2px;border-top:1px dashed var(--line);font-size:12.5px}
+.sitenav .secrow .lbl{margin-right:2px}.sitenav .secrow a{padding:2px 7px;border-color:var(--line);color:var(--fg2)}.sitenav .secrow a.sub{border-style:dashed;font-size:12px}
+.sitenav .secrow a.on{color:var(--fg);background:var(--accent-soft);font-weight:600}h2,h3{scroll-margin-top:110px}</style></head><body><div class="wrap">
 <header>
-<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><span class="cur">4 · 纹理 VAE 汇报</span><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="oldmodel.html" title="3 · 旧模型采样密度">← 上一篇</a><a href="ftpbr.html" title="5 · 微调对照与 PBR VAE">下一篇 →</a></span></nav>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><span class="cur">4 · 纹理 VAE 汇报</span><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="oldmodel.html" title="3 · 旧模型采样密度">← 上一篇</a><a href="ftpbr.html" title="5 · 微调对照与 PBR VAE">下一篇 →</a></span><span class="secrow"><span class="lbl">本页跳转：</span><a href="#s1" class="top" title="1. 架构：注意力 latent 与表 latent">1 架构</a><a href="#s2" class="top" title="2. 定量结果">2 定量结果</a><a href="#s3" class="top" title="3. 定性结果">3 定性结果</a><a href="#s4" class="top" title="4. 局限与下一步">4 局限与下一步</a></span></nav>
 <p class="eyebrow">TriTex · per-triangle texture VAE · 2026-10-19</p>
 <h1>纹理 VAE：从注意力 latent 到表 latent</h1>
 <p class="sub">把 latent 从"8192 个靠注意力读写的向量"改成"按锚点、槽位、角点组织、按下标读写的表"，再把编码器输入从每面 28 点加到 91 点。完整 Objaverse（≤ 20 万面）上，held-out 面积 PSNR 从旧模型最好的 24.73 dB 升到 32.43 dB（val 前 32 个 mesh）；64 个 mesh 的终评从 25.89 升到 32.65 dB。</p>
@@ -83,11 +85,11 @@ details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(-
 </div>
 <div class="callout"><p><strong>结论：</strong>旧模型丢细节的原因不是容量或 KL，而是读写都靠注意力"找"，找的过程把相邻面平均了。改成由几何决定地址、按下标读写的表结构后，latent 不再是瓶颈；之后的上限来自每面采样点数，把输入从 28 点加到 91 点又提升了 3.6 dB。证据链见 <a href="roundq.html">Round Q 续</a>。</p></div>
 
-<h2>1. 架构：注意力 latent 与表 latent</h2>
+<h2 id="s1">1. 架构：注意力 latent 与表 latent</h2>
 <figure class="arch"><img src="vae/arch.jpg" alt="注意力 latent 与表 latent 的架构对比图"><figcaption>左：旧模型，8192 个锚点各对应一个 64 维 latent，写入和读取都是全局 softmax 加权求和。右：新模型，每个面按最近锚点固定分格、按到锚点距离分槽位，三个角点各写入自己的块；latent 间自注意力只加零初始化残差，不经过读写路径。</figcaption></figure>
 <div class="tablewrap"><table><tr><th></th><th>注意力 latent</th><th>表 latent 28 点</th><th>表 latent 91 点（当前最佳）</th></tr><tr><td>锚点</td><td>surface FPS，固定 8192</td><td>面质心 FPS，N = min(16384, 面数)</td><td>同左</td></tr><tr><td>每个 latent</td><td>64 维向量</td><td>(8 槽 + 1 溢出) × 3 角点 × 32 = 864 维</td><td>(8 + 1) × 3 × 16 = 432 维</td></tr><tr><td>写入 / 读取</td><td>交叉注意力 / 交叉注意力</td><td>按 (格子, 槽位, 角点) 下标</td><td>同左</td></tr><tr><td>编码器输入</td><td>每面 28 点</td><td>每面 28 点</td><td>每面 91 点</td></tr><tr><td>KL</td><td>整体，1e-4</td><td>按块，1e-4</td><td>按块，1e-4</td></tr><tr><td>参数量</td><td>2.19 亿</td><td>2.12 亿</td><td>2.12 亿</td></tr></table></div>
 
-<h2>2. 定量结果</h2>
+<h2 id="s2">2. 定量结果</h2>
 <h3>2.1 训练曲线</h3>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 640 320" width="100%" role="img" aria-label="完整数据 val 前 32 个：area-PSNR (dB)" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">完整数据 val 前 32 个：area-PSNR (dB)</text>
@@ -395,7 +397,7 @@ details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(-
 <div class="tablewrap"><table><tr><th>KL 权重</th><th class=n>面积 PSNR</th><th class=n>每面 KL（比特）</th><th class=n>活跃通道 / 32</th></tr><tr><td>1e-4（当前）</td><td class=n>26.29</td><td class=n>533</td><td class=n>32</td></tr><tr><td>1e-3</td><td class=n>25.66</td><td class=n>164</td><td class=n>31</td></tr><tr><td>3e-3</td><td class=n>25.60</td><td class=n>85</td><td class=n>22</td></tr><tr><td>1e-2</td><td class=n>25.10</td><td class=n>40</td><td class=n>16</td></tr></table></div>
 <p class="small">原始 28 点 × 3 × 8 bit = 672 比特/面。KL 加大 10 倍只掉 0.6 dB，信息量降到三分之一，给生成模型留出压缩空间；空槽位的 KL 接近 0，可被生成端直接视为先验。</p>
 
-<h2>3. 定性结果</h2>
+<h2 id="s3">3. 定性结果</h2>
 <h3>3.1 交互式 3D 对比</h3>
 <p>拖动旋转、滚轮缩放；三个视口共享相机：真值 / 注意力 latent（200k + 退火）/ 表 latent 91 点。下方是烘焙到 GT UV 布局的贴图，可点开看原图。</p>
 
@@ -548,7 +550,7 @@ details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(-
 <p class="small">蜜蜂、面具、Enternity Demon、狗四个案例最能说明问题，先列出；其余案例在下方展开。</p>
 <div class="stack"><figure class="imgfig"><img src="vae/detail_ecbab41a.jpg" alt="Enternity Demon 细节裁剪" loading="lazy"><figcaption><strong>Enternity Demon</strong> · 50,026 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：30.2 / 36.3 / 36.6 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_e610ab72.jpg" alt="舞蹈面具 细节裁剪" loading="lazy"><figcaption><strong>舞蹈面具</strong> · 8,046 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：25.4 / 29.1 / 30.3 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_9a77cdf9.jpg" alt="Dog 细节裁剪" loading="lazy"><figcaption><strong>Dog</strong> · 33,384 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：27.9 / 28.1 / 28.5 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_60ef2e59.jpg" alt="Bee 细节裁剪" loading="lazy"><figcaption><strong>Bee</strong> · 51,731 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：23.5 / 25.9 / 27.9 dB</figcaption></figure></div><details class="more"><summary>展开其余 6 个案例（同样的四列布局）</summary><div class="stack"><figure class="imgfig"><img src="vae/detail_522f50ca.jpg" alt="Spider-Man 细节裁剪" loading="lazy"><figcaption><strong>Spider-Man</strong> · 99,208 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：24.2 / 21.9 / 21.9 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_67468672.jpg" alt="Soldier 细节裁剪" loading="lazy"><figcaption><strong>Soldier</strong> · 31,263 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：21.4 / 21.9 / 22.8 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_994aec41.jpg" alt="救护车 细节裁剪" loading="lazy"><figcaption><strong>救护车</strong> · 48,270 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：27.3 / 31.0 / 31.8 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_53bf4971.jpg" alt="Hello Neighbor 细节裁剪" loading="lazy"><figcaption><strong>Hello Neighbor</strong> · 23,610 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：24.5 / 26.4 / 27.2 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_1aac7b79.jpg" alt="Rippersnapper 细节裁剪" loading="lazy"><figcaption><strong>Rippersnapper</strong> · 5,746 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：20.3 / 21.8 / 23.3 dB</figcaption></figure><figure class="imgfig"><img src="vae/detail_209865ec.jpg" alt="Shadowsun 细节裁剪" loading="lazy"><figcaption><strong>Shadowsun</strong> · 7,434 面 · 裁剪区 PSNR 注意力 / 表 28 点 / 表 91 点：24.5 / 27.3 / 28.5 dB</figcaption></figure></div></details>
 
-<h2>4. 局限与下一步</h2>
+<h2 id="s4">4. 局限与下一步</h2>
 <ul>
 <li><strong>超大 mesh 的溢出槽</strong>：近 10 万面时每格约 6 个面，部分面被平均（Spider-Man 是唯一落后的案例）。推理时锚点加倍已验证有效，下一步按面数自适应锚点上限，或增加槽位。</li>
 <li><strong>每面采样分辨率</strong>：狗毛、整幅照片贴在少数大面上（如球星卡）这类纹理，受每面 91 个采样点限制。上界是 interp（64 mesh 上 44.05 dB），离它还有 11 dB，主要在大面上。</li>
@@ -618,4 +620,6 @@ details.more{padding:10px 14px} details.more summary{font-weight:500;color:var(-
 document.querySelectorAll('.texzoom').forEach(b => b.addEventListener('click', () => { const g = b.closest('.texpanel').querySelector('.texpair'); const big = g.classList.toggle('big'); b.textContent = big ? '缩小' : '放大'; }));
 </script>
 
-</body></html>
+<script>(function(){var L=[].slice.call(document.querySelectorAll('.sitenav .secrow a[href^="#"]'));if(!L.length)return;var H=L.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function upd(){var y=window.scrollY+120,k=-1;for(var i=0;i<H.length;i++){if(H[i]&&H[i].offsetTop<=y)k=i}L.forEach(function(a,i){a.classList.toggle('on',i===k)})}
+window.addEventListener('scroll',upd,{passive:true});window.addEventListener('load',upd);upd()})()</script></body></html>

@@ -29,7 +29,7 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
 *   **[微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html)** — `ftpbr.html` — 目前最活跃的页面。单变量微调对照 A–E；5 通道（albedo + 金属度 + 粗糙度）PBR VAE 从头训 100k，续训到 200k（放开坍缩通道的 KL、加 EMA）再到 300k（去掉 KL 和后验采样）；与 TRELLIS.2 纹理 VAE 的同口径对比；推理时加密锚点、按纹理细分面；单个 latent token 的作用范围可视化；KL 权重对照。
 *   **[纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html)** — `dit.html` — 在表 latent 上训练扩散 transformer：无条件生成的面间一致性问题（"迪斯科球"）、图像条件接入、12 个版本的迭代与全规模训练状态。
 
-每页顶部有一条固定的导航栏：左侧“仓库主页 · 总索引”回到本 README，中间按阅读顺序列出六个页面并高亮当前页，右侧“上一篇 / 下一篇”。页面里的数字都由生成脚本从训练产物（`metrics.jsonl`、评测 json）实时读出，不是手填的。
+每页顶部有一条固定的导航栏：左侧“仓库主页 · 总索引”回到本 README，中间按阅读顺序列出六个页面并高亮当前页，右侧“上一篇 / 下一篇”。导航栏第二行是本页各节的跳转按钮，随滚动高亮当前节；每节的锚点固定为节号（`#s3`、`#s3-8`），可以直接链接到某一节，例如 [ftpbr.html#s3-3 定量结果](https://caesarrwang.github.io/tritexture/ftpbr.html#s3-3)、[#s3-8 续训到 300k](https://caesarrwang.github.io/tritexture/ftpbr.html#s3-8)、[#s3-12 KL 权重对照](https://caesarrwang.github.io/tritexture/ftpbr.html#s3-12)。页面里的数字都由生成脚本从训练产物（`metrics.jsonl`、评测 json）实时读出，不是手填的。
 
 目录
 ----

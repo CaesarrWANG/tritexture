@@ -65,9 +65,11 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 </style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
 <style>.imgfig img{border:1px solid var(--line)} .nav{font-size:13px;color:var(--fg2);margin:0 0 10px} .nav a{color:var(--accent);margin-right:14px}
 details{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px} details summary{cursor:pointer;color:var(--fg2);font-size:13.5px}</style>
-</head><body><div class="wrap">
+<style>.sitenav .secrow{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-top:6px;margin-top:2px;border-top:1px dashed var(--line);font-size:12.5px}
+.sitenav .secrow .lbl{margin-right:2px}.sitenav .secrow a{padding:2px 7px;border-color:var(--line);color:var(--fg2)}.sitenav .secrow a.sub{border-style:dashed;font-size:12px}
+.sitenav .secrow a.on{color:var(--fg);background:var(--accent-soft);font-weight:600}h2,h3{scroll-margin-top:110px}</style></head><body><div class="wrap">
 <header>
-<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><span class="cur">6 · 纹理 DiT</span><span class="pn"><a href="ftpbr.html" title="5 · 微调对照与 PBR VAE">← 上一篇</a></span></nav>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><span class="cur">6 · 纹理 DiT</span><span class="pn"><a href="ftpbr.html" title="5 · 微调对照与 PBR VAE">← 上一篇</a></span><span class="secrow"><span class="lbl">本页跳转：</span><a href="#s1" class="top" title="1. 设计">1 设计</a><a href="#s2" class="top" title="2. 迭代过程">2 迭代过程</a><a href="#s3" class="top" title="3. 无条件生成：面间一致性">3 无条件生成</a><a href="#s4" class="top" title="4. 图像条件">4 图像条件</a><a href="#s5" class="top" title="5. 全规模训练（进行中）">5 全规模训练</a><a href="#s6" class="top" title="6. 下一步">6 下一步</a></span></nav>
 <p class="eyebrow">TriTex · texture DiT on the table latent · 2026-10-17 至 10-19</p>
 <h1>纹理生成：表 latent 上的 DiT</h1>
 <p class="sub">给定 mesh 和若干视角的图像，生成每个面的纹理。12 个版本的迭代先解决"生成结果像迪斯科球"（面与面颜色互不相关），再接入图像条件；小规模版本的采样结果对真值从 11.6 dB 提到 22–23 dB，全规模训练进行中。</p>
@@ -79,13 +81,13 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 <div class="tile"><div class="l">模型</div><div class="v">1.6 亿</div><div class="d">768 宽 × 12 层，DINOv2 冻结</div></div>
 </div>
 
-<h2>1. 设计</h2>
+<h2 id="s1">1. 设计</h2>
 <div class="tablewrap"><table><tr><th>部分</th><th>做法</th><th>理由</th></tr><tr><td>token</td><td>VAE 表 latent 中每个被占用的 (锚点, 槽位) 一个 token，内容为 3 角点 × 16 通道 = 48 维；空槽不生成</td><td>空槽的后验已等于先验 (μ≈0, σ=1)，无需建模；token 数 ≈ 面数</td></tr><tr><td>结构由几何给出</td><td>锚点、格子、槽位全部由 mesh 算出，DiT 只填内容</td><td>生成时 mesh 已知，与图像 DiT 的像素网格同等地位</td></tr><tr><td>每 token 条件</td><td>角点几何、到锚点位移、法向、锚点位置编码、槽位 one-hot、UV 岛随机编码、图像回投颜色</td><td>与 VAE 共用同一套地址系统</td></tr><tr><td>注意力</td><td>自注意力 + RoPE-6D（位置 + 法向）+ 按头的距离核阶梯 + 同 UV 岛偏置 + 8 个全局寄存 token；每层图像交叉注意力</td><td>局部一致性和全局色板分开处理</td></tr><tr><td>目标</td><td>流匹配（速度），latent 按维度标准化；t 一半 logit-normal 一半均匀，SD3 时间平移 3</td><td>覆盖高噪声段（布局在这里决定）</td></tr><tr><td>附加损失</td><td>平均色子空间加权 ×5；接缝损失 ×10：用冻结 VAE 解码预测的干净 latent，比较跨边颜色跳变与真值</td><td>让模型学会面间连续</td></tr><tr><td>采样</td><td>50 步 Euler，无分类器引导强度 4；可选接缝引导</td><td></td></tr></table></div>
 
-<h2>2. 迭代过程</h2>
+<h2 id="s2">2. 迭代过程</h2>
 <div class="tablewrap"><table><tr><th>版本</th><th>改动</th><th>关键结果</th><th>结论</th></tr><tr><td>v1</td><td>按面 token + 几何条件 + 流匹配</td><td>从纯噪声采样 9 dB，从 t=0.7 出发 30 dB</td><td>t>0.95 训练时几乎采不到，采样第一步就偏</td></tr><tr><td>v2</td><td>按维度标准化 latent；t 混合分布 + 时间平移</td><td>去噪正常，样本面内正常但相邻面颜色无关（相邻色差 0.10，真值 0.013）</td><td>缺的是面间相关性</td></tr><tr><td>v3</td><td>注意力加距离核阶梯 + 寄存 token + 累积 2</td><td>一致性收敛快一倍，但停在 0.045</td><td></td></tr><tr><td>v4</td><td>平均色子空间加权</td><td>几乎无改善</td><td>latent 的平均色子空间本就平滑（相邻/随机比 0.21），粗糙的是面内细节维度</td></tr><tr><td>v5</td><td>（取消）几何无关 VAE</td><td>latent 平滑度不变（0.476 对 0.469）</td><td>几何不是 latent 粗糙的原因</td></tr><tr><td>v6</td><td>UV 岛随机编码（GLB 索引缓冲的连通块）</td><td>7.5k 相邻色差 0.034，比 v4 15k 还低</td><td>UV 岛解释了真值 75% 的颜色方差；第一个明显有效的改动</td></tr><tr><td>v7</td><td>同 UV 岛的注意力偏置</td><td>与 v6 相同（0.030）</td><td></td></tr><tr><td>采样实验</td><td>降温 0.9 / 接缝引导</td><td>降温：一致性到真值，但面内细节减半；引导强度 3：接缝 0.007、细节保留</td><td>不一致产生于高噪声段的布局决策</td></tr><tr><td>v8</td><td>接缝损失 ×1，按 (1−t) 加权</td><td>接缝 0.044 → 0.035</td><td>方向对但慢：(1−t) 压低了关键的高噪声段</td></tr><tr><td>v9</td><td>接缝损失 ×10，各噪声等权</td><td>相邻色差 0.020、接缝 0.027、色彩分布与细节都与真值吻合</td><td>无条件生成可用；加强度 1 的引导后接缝到真值水平</td></tr><tr><td>v10</td><td>图像条件：6→4 视角渲染 + DINOv2 交叉注意力</td><td>采样 PSNR 11.6 → 14.3</td><td>跟随条件但很松：网络要自己找每个面在图上的位置</td></tr><tr><td>v11</td><td>每面在各视角的可见像素平均色回投为条件</td><td>20.0 dB</td><td>单色物体几乎精确，彩色物体颜色对上</td></tr><tr><td>v12</td><td>28 格点逐点回投 + 6 视角（加顶/底）</td><td>峰值 23.0 dB</td><td>面内图案也能传进来</td></tr><tr><td>全规模</td><td>91 点 VAE、≤ 3 万面、16 卡、v12 配方</td><td>25k 步 19–20 dB，去噪 29.95</td><td>进行中</td></tr></table></div>
 
-<h2>3. 无条件生成：面间一致性</h2>
+<h2 id="s3">3. 无条件生成：面间一致性</h2>
 <p>只给几何时生成结果对真值的 PSNR 没有意义（生成的是另一种合理纹理），所以用三个与真值内容无关的统计量：相邻面平均色差、全局颜色分布宽度、跨共享边的颜色跳变（接缝）。</p>
 <div class="tablewrap"><table><tr><th>版本（温度 1.0，不加引导）</th><th class=n>相邻面平均色差</th><th class=n>色彩分布宽度</th><th class=n>面内细节</th><th class=n>接缝跳变</th></tr><tr><td>真值（8 个 val mesh）</td><td class=n>0.013</td><td class=n>0.118</td><td class=n>0.025</td><td class=n>0.014</td></tr><tr><td>v2 @5k</td><td class=n neg>0.101</td><td class=n>0.151</td><td class=n>0.037</td><td class=n>—</td></tr><tr><td>v6 @7.5k（UV 岛）</td><td class=n>0.034</td><td class=n>0.110</td><td class=n>0.028</td><td class=n>—</td></tr><tr><td>v7 @17.5k（岛注意力）</td><td class=n>0.029</td><td class=n>0.137</td><td class=n>0.032</td><td class=n>0.044</td></tr><tr><td>v8 @5k（接缝 ×1）</td><td class=n>0.025</td><td class=n>0.130</td><td class=n>0.030</td><td class=n>0.035</td></tr><tr><td>v9 @5k（接缝 ×10）</td><td class=n pos>0.020</td><td class=n pos>0.115</td><td class=n pos>0.026</td><td class=n pos>0.027</td></tr></table></div>
 <div class="tablewrap"><table><tr><th>v9 @5k + 接缝引导</th><th class=n>相邻色差</th><th class=n>色彩分布</th><th class=n>面内细节</th><th class=n>接缝</th></tr><tr><td>真值（6 个 mesh）</td><td class=n>0.008</td><td class=n>0.078</td><td class=n>0.018</td><td class=n>0.010</td></tr><tr><td>引导 0</td><td class=n>0.022</td><td class=n>0.114</td><td class=n>0.026</td><td class=n>0.028</td></tr><tr><td>引导 0.5</td><td class=n>0.019</td><td class=n>0.111</td><td class=n>0.025</td><td class=n>0.014</td></tr><tr><td>引导 1</td><td class=n pos>0.018</td><td class=n>0.109</td><td class=n pos>0.024</td><td class=n pos>0.007</td></tr></table></div>
@@ -95,7 +97,7 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 </div>
 <details><summary>v6（UV 岛编码）样本</summary><figure class="wide imgfig"><img src="dit/v6_islands.jpg" alt="v6 样本" loading="lazy"><figcaption>v6 @7.5k，温度 1.0。</figcaption></figure></details>
 
-<h2>4. 图像条件</h2>
+<h2 id="s4">4. 图像条件</h2>
 <div class="figrow"><figure class="wide imgfig"><img src="dit/cond_views.jpg" alt="条件视图" loading="lazy"><figcaption>条件视图示例：无光照反照率，白背景，224 像素（v12 起再加俯视和仰视共 6 个）。</figcaption></figure></div>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="图像条件：采样结果对真值的 PSNR（≤ 8192 面子集，小 VAE）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">图像条件：采样结果对真值的 PSNR（≤ 8192 面子集，小 VAE）</text>
@@ -146,7 +148,7 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 </div>
 <details><summary>v10（只有 DINO）与 v11（每面颜色回投）样本</summary><figure class="wide imgfig"><img src="dit/v10_dino.jpg" alt="v10" loading="lazy"><figcaption>v10 @5k：只能看出整体明暗。</figcaption></figure><figure class="wide imgfig"><img src="dit/v11_bp.jpg" alt="v11" loading="lazy"><figcaption>v11 @12.5k，引导 4。</figcaption></figure></details>
 
-<h2>5. 全规模训练（进行中）</h2>
+<h2 id="s5">5. 全规模训练（进行中）</h2>
 <div class="figrow"><figure class="wide"><svg viewBox="0 0 640 300" width="100%" role="img" aria-label="全规模 DiT（91 点 VAE，≤ 3 万面，16 卡）" style="max-width:640px;font-family:var(--font-ui);font-size:11px">
 <text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">全规模 DiT（91 点 VAE，≤ 3 万面，16 卡）</text>
 <line x1="44" x2="626" y1="245.0" y2="245.0" stroke="var(--grid)"/>
@@ -196,7 +198,7 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 <figcaption>Slurm 36244639，89,469 个 ≤ 3 万面的 mesh，每步 16 个，1.5 秒/步，100k 步约 40 小时。去噪能力持续上升，采样 PSNR 目前在 19–20 dB 徘徊。</figcaption></figure></div>
 <div class="figrow"><figure class="wide imgfig"><img src="dit/full_10k.jpg" alt="全规模样本" loading="lazy"><figcaption>10k 步（2–2.4 万面的 val mesh，引导 4）：人物、帽子小人、手雷接近真值；满身涂鸦的人物变成横向拉丝的色块，高频图案是当前最弱处。</figcaption></figure></div>
 
-<h2>6. 下一步</h2>
+<h2 id="s6">6. 下一步</h2>
 <ul>
 <li>全规模跑到 30k 后看高频图案是否改善；若仍是拉丝块，消融接缝权重和局部先验对面内细节的抑制。</li>
 <li>预计算并缓存 VAE latent 与 DINO 特征，单步时间可降一半以上。</li>
@@ -204,4 +206,6 @@ details{margin:8px 0;background:var(--surface);border:1px solid var(--line);bord
 <li>评测补充：多视角渲染图上的 PSNR / LPIPS / FID，便于和其他方法比较。</li>
 </ul>
 <footer>生成脚本 build_dit_page.py。</footer>
-</div></body></html>
+</div><script>(function(){var L=[].slice.call(document.querySelectorAll('.sitenav .secrow a[href^="#"]'));if(!L.length)return;var H=L.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function upd(){var y=window.scrollY+120,k=-1;for(var i=0;i<H.length;i++){if(H[i]&&H[i].offsetTop<=y)k=i}L.forEach(function(a,i){a.classList.toggle('on',i===k)})}
+window.addEventListener('scroll',upd,{passive:true});window.addEventListener('load',upd);upd()})()</script></body></html>

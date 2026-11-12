@@ -61,9 +61,11 @@ p.small{font-size:13px;color:var(--fg2)}
 @media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
 footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
-</style></head><body>
+</style><style>.sitenav .secrow{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-top:6px;margin-top:2px;border-top:1px dashed var(--line);font-size:12.5px}
+.sitenav .secrow .lbl{margin-right:2px}.sitenav .secrow a{padding:2px 7px;border-color:var(--line);color:var(--fg2)}.sitenav .secrow a.sub{border-style:dashed;font-size:12px}
+.sitenav .secrow a.on{color:var(--fg);background:var(--accent-soft);font-weight:600}h2,h3{scroll-margin-top:110px}</style></head><body>
 <div class="wrap">
-<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><span class="cur">1 · Round P 基线</span><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="roundq.html" title="2 · Round Q 续：表 latent">下一篇 →</a></span></nav>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><span class="lbl">按阅读顺序：</span><span class="cur">1 · Round P 基线</span><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="pn"><a href="roundq.html" title="2 · Round Q 续：表 latent">下一篇 →</a></span><span class="secrow"><span class="lbl">本页跳转：</span><a href="#s1" class="top" title="1. 实验设置">1 实验设置</a><a href="#s2" class="top" title="2. 数据：从 80 万到 12 万">2 数据</a><a href="#s3" class="top" title="3. 训练曲线">3 训练曲线</a><a href="#s4" class="top" title="4. 诊断：输在哪类面，错在什么">4 诊断</a><a href="#s5" class="top" title="5. 交互式案例：GT · 重建 · const 同屏对比">5 交互式案例</a><a href="#s6" class="top" title="6. Round Q：定位高频瓶颈（10 月 12 日至 14 日）">6 Round Q</a><a href="#s7" class="top" title="7. 结论">7 结论</a><a href="#s8" class="top" title="8. 下一步">8 下一步</a></span></nav>
 <header>
 <p class="eyebrow">TriTex · per-triangle texture VAE · 实验汇报 · 2026-10-11，Round Q 更新于 2026-10-14</p>
 <h1>Round P：把纹理 VAE 从 2.3 万双鞋扩展到 Objaverse 12 万个物体</h1>
@@ -83,7 +85,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <p><strong>Round Q（第 6 节）：</strong>逐面 IO 的加权平均是第一道瓶颈，换成无损格点 IO 后旁路模型达到 interp 上限；接回 latent 后收益消失，损失随每个 latent 要代表的面数增长。固定数量的 latent 集合是当前瓶颈，oracle 实验进行中。</p>
 </div>
 
-<h2>1. 实验设置</h2>
+<h2 id="s1">1. 实验设置</h2>
 <div class="tablewrap"><table>
 <tr><th>项目</th><th>本次 (roundP_objav_vae)</th><th>原团队 SHOES 最佳 run (P1)</th></tr>
 <tr><td>模型</td><td colspan="2">TriTexVecSet 219.4M 参数：等变逐面前端 (triplet token)，8192 × 64 latent 锚在表面 FPS 点，4 层编码器 + 12 层解码器，rope6d + heat-kernel 谱 PE，WIRE 谱 RoPE，rope_v，QK-norm，距离核。两次完全相同。</td></tr>
@@ -96,7 +98,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <tr><td>评估</td><td colspan="2">每 2500 步，val 前 32 个 ≤ 130k 面的 mesh，全 91 个 lattice 点；final 64 个。基线：const（每面平均色）、interp（28 输入点插值上限）、z=0（latent 全零）</td></tr>
 </table></div>
 
-<h2>2. 数据：从 80 万到 12 万</h2>
+<h2 id="s2">2. 数据：从 80 万到 12 万</h2>
 <p>TriTex 的数据管线本身没有纹理过滤：glTF 规范里 baseColorFactor 永远存在，没有贴图的材质会被采成常数颜色正常进入训练。Objaverse 里 27.9% 的文件完全没有 base-colour 贴图，因此过滤放在 split 生成之前，用 metadata 覆盖率加真实 loader 逐文件扫描两道。</p>
 <div class="tablewrap"><table>
 <tr><th>阶段</th><th class="n">文件数</th><th>说明</th></tr>
@@ -113,7 +115,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <figcaption>被过滤掉的典型样本（loader 直接采样的 albedo，无光照）。上排 4 个为纯色材质，整个 mesh 只有 1 到 20 种颜色；下排 4 个仅有顶点色。这类资产对 VAE 的最优解就是每面平均色，不提供任何面内纹理监督。</figcaption></figure>
 <p>扫描还发现一个会直接影响后面结论的事实：保留集里仍有 8% 的 mesh 是调色板风格的低模，贴图存在但几乎每个面都是常数颜色；整体上面内方差的中位数只有 0.03。</p>
 
-<h2>3. 训练曲线</h2>
+<h2 id="s3">3. 训练曲线</h2>
 <p>held-out 曲线用 val 前 32 个 mesh，每 2500 步评估一次，三条指标都平稳上升；第 5 万到 10 万步之间 face-PSNR 每万步 +0.18 dB，在变平。train 与 val 的差距约 2.4 dB，与原团队鞋子数据上的 2 dB 相当。</p>
 <div class="figrow">
 <figure><svg viewBox="0 0 360 240" width="100%" role="img" aria-label="area-PSNR (dB)" style="max-width:360px;font-family:var(--font-ui);font-size:11px">
@@ -439,7 +441,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <p>z=0 消融保持在 11 dB 左右，远低于模型本身，说明解码器确实依赖 latent，不存在"几何预测颜色"的捷径。KL 从 5.4 降到 0.68 nats/元素，高于鞋子 run 的 0.25，latent 承载的信息量更大。</p>
 <p>直接读整体 PSNR 的结论是：<strong>10 万步后模型在三个指标上都低于每面平均色基线</strong>，而鞋子 run 在 area 上超过基线 0.5 dB、face 上持平。下面第 4 节解释为什么这个数字不能直接解读为"模型没学到东西"。</p>
 
-<h2>4. 诊断：输在哪类面，错在什么</h2>
+<h2 id="s4">4. 诊断：输在哪类面，错在什么</h2>
 <p>把 64 个 held-out mesh 的所有面按 GT 面内亮度标准差分成三档，分别计算面积加权 PSNR，并把模型误差拆成 DC（每面平均颜色的误差）和 AC（面内变化模式的误差）两部分。</p>
 <div class="figrow">
 <figure><svg viewBox="0 0 520 260" width="100%" role="img" aria-label="按面类型：模型 vs 每面平均色基线 (area-weighted PSNR, dB)" style="max-width:520px;font-family:var(--font-ui);font-size:11px">
@@ -610,7 +612,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <tr><td>&gt; 80%</td><td class="n">16</td><td class="n neg">−5.6 dB</td><td class="n pos">+2.1 dB</td></tr>
 </table></div>
 
-<h2>5. 交互式案例：GT · 重建 · const 同屏对比</h2>
+<h2 id="s5">5. 交互式案例：GT · 重建 · const 同屏对比</h2>
 <p>10 个 held-out mesh（以 Objaverse 物体 ID 标识），每个嵌入一个 three.js 查看器。三个视图共用一个相机：拖拽旋转、滚轮缩放、右键平移，三边同步。左为原始贴图 (GT)，中为模型重建，右为每面平均色基线 (const)。贴图在 GT 的 UV 布局上烘焙成图集：每个材质一个图块（单材质 2048 × 2048，多材质 4096 × 4096 分块），无光照直接显示 albedo，模型默认缓慢自转，拖动时暂停、松手 3 秒后继续。每个案例下方并排给出 UV 空间的烘焙贴图（真值 / 重建），点击图片可打开原始分辨率。</p>
 <div class="callout">
 <p><strong>const 是什么。</strong>它不是模型，是一把尺子：对每个三角面，取该面 91 个采样点真值颜色的平均值，把整个面涂成这一种颜色。每个面只剩 RGB 三个数，没有任何面内变化。</p>
@@ -740,7 +742,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 </div>
 <p class="small">模型首次进入视野时才加载（每个案例 2 到 8 MB），加载前显示静态缩略图。若浏览器禁用 WebGL，仅显示缩略图。</p>
 
-<h2>6. Round Q：定位高频瓶颈（10 月 12 日至 14 日）</h2>
+<h2 id="s6">6. Round Q：定位高频瓶颈（10 月 12 日至 14 日）</h2>
 <p>针对评审意见“真正的难点在面内纹理变化显著的面，尤其是大面”，用一组消融把损失定位到了具体环节。所有数字都在同一批 held-out mesh 上、以同一套脚本计算。</p>
 
 <h3>6.1 新参照：interp，只复述输入的上限</h3>
@@ -920,7 +922,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <p>链路上有三处会丢高频：输入每面固定 28 个采样点（大面上信息在源头就缺失，interp 上限随面积从 30 降到 19 dB）；逐面 IO 的加权平均（已用格点 IO 消除）；固定 8192 个 latent 经两次跨面加权平均（当前瓶颈，损失随每 latent 面数增长，并且这条路径训练很慢）。几何 VAE 用同样结构可行，因为形状是低熵信号；纹理的信息量随贴图面积和频率增长，固定预算装不下。</p>
 <p>正在进行的 oracle 实验：在面数 ≤ 8192 的 mesh 上让每个面独占一个放在质心的 latent，与“8192 个表面 FPS anchor”的控制组对比。若 oracle 接近旁路上限（这批 mesh 上 27.4 dB），则损失来自“多个面挤一个 latent”，方向是 latent 数量随 mesh 复杂度变化；若与控制组一样差，则 cross-attention 的读写机制本身需要重新设计。</p>
 
-<h2>7. 结论</h2>
+<h2 id="s7">7. 结论</h2>
 <ul>
 <li><strong>管线在 Objaverse 上成立。</strong>cotangent Laplacian 加 CGAL 切割的 cache 在 12 万个异构 mesh 上建成，谱分解失败率 1.3%；16 卡 DDP 稳定运行 26 小时，分桶采样使每步时间从预估的 2.3 秒降到 0.94 秒。</li>
 <li><strong>模型在学纹理，并且比基线学得好。</strong>在真正有纹理的面上模型领先每面平均色基线 1.1 dB，且这一领先在所有 mesh 分组里都成立；z=0 消融证明 latent 被使用。</li>
@@ -931,7 +933,7 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 <li><strong>与原团队的对照需要谨慎。</strong>鞋子数据全部带贴图、面内方差大，const 基线弱得多；两组数字不能直接比较。</li>
 </ul>
 
-<h2>8. 下一步</h2>
+<h2 id="s8">8. 下一步</h2>
 <ul>
 <li><strong>正在跑</strong><span class="status">进行中</span>：完整模型 + 格点 IO 的 5 万步版本（Slurm）；每面一个 latent 的 oracle 与控制组（本地）。</li>
 <li><strong>评估口径</strong>：把"有纹理面上相对 const 的差值"作为 Objaverse 上的主指标，与整体 PSNR 并列报告；在 TexGaussian / Paint3D / TEXGen 的 hold-out 列表上做 per-mesh 评估，为与 baseline 对比打底。</li>
@@ -1001,4 +1003,6 @@ footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(
 })();
 document.querySelectorAll('.texzoom').forEach(b => b.addEventListener('click', () => { const g = b.closest('.texpanel').querySelector('.texpair'); const big = g.classList.toggle('big'); b.textContent = big ? '缩小' : '放大'; }));
 </script>
-</body></html>
+<script>(function(){var L=[].slice.call(document.querySelectorAll('.sitenav .secrow a[href^="#"]'));if(!L.length)return;var H=L.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function upd(){var y=window.scrollY+120,k=-1;for(var i=0;i<H.length;i++){if(H[i]&&H[i].offsetTop<=y)k=i}L.forEach(function(a,i){a.classList.toggle('on',i===k)})}
+window.addEventListener('scroll',upd,{passive:true});window.addEventListener('load',upd);upd()})()</script></body></html>
