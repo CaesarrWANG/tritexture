@@ -1,7 +1,19 @@
 TriTex · 原生网格上的逐面纹理 VAE 与纹理生成
 =============================================
 
-**在线页面：https://caesarrwang.github.io/tritexture/** — 入口是 `index.html`；本地预览直接用浏览器打开各 `.html`（3D 查看器需要通过 http 访问，可 `python -m http.server`）。
+**在线页面：https://caesarrwang.github.io/tritexture/** — 本地预览直接用浏览器打开各 `.html`（3D 查看器需要通过 http 访问，可 `python -m http.server`）。
+
+快速导航
+--------
+
+| 页面 | 内容 | 阶段 |
+|---|---|---|
+| [Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html) | 从 2.3 万双鞋扩展到 Objaverse 12 万个物体；误差诊断；GT / 重建 / 均值 3D 对比 | 2026-10 上旬 |
+| [Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html) | latent 丢面内细节的机制定位；表 latent 设计与全规模结果 | 2026-10 中旬 |
+| [旧模型探索：采样密度](https://caesarrwang.github.io/tritexture/oldmodel.html) | 输入点 / 监督点 / 大面切分的 10k 步对照 | 2026-10 下旬 |
+| [纹理 VAE 汇报](https://caesarrwang.github.io/tritexture/vae.html) | 注意力 latent 与表 latent 的架构对照与汇总结果 | 2026-10 下旬 |
+| [微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html) | 微调对照 A–E；5 通道 PBR VAE 100k → 300k；TRELLIS.2 对比；推理时加密锚点 / 细分；latent 作用范围；KL 权重对照 | 2026-10 下旬至今 |
+| [纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html) | 表 latent 上的扩散 transformer：面间一致性、图像条件 | 2026-10 中旬起 |
 
 TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、不烘焙多视角图），用一组落在表面上的 latent token 读写。这个仓库是实验报告站：每个页面对应一个阶段的实验，含训练曲线、定量表、three.js 交互式 3D 对比和细节裁剪。页面之间按时间和依赖关系排列如下，建议按顺序读；只看结论可以直接看 `ftpbr.html` 的第 1 节。
 
@@ -10,12 +22,12 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
 
 按阅读顺序（也是实验的时间顺序）：
 
-*   **Round P：Objaverse 全规模基线** — `index.html` — 把纹理 VAE 从 2.3 万双鞋扩展到 Objaverse 12 万个物体（4 节点 × 4 × H100，10 万步）。数据筛选、训练曲线、按面类型的误差诊断、GT / 重建 / 逐面均值的同屏 3D 对比，以及 Round Q 对高频瓶颈的定位。
-*   **Round Q 续：表 latent** — `roundq.html` — 把"latent 为什么丢面内细节"追到机制层面（排除 → 定位 → 构造），据此把 latent 从 8192 个注意力向量改成按锚点、槽位、角点组织的表。小规模验证与全规模结果（held-out 25.89 → 28.83 dB）。
-*   **旧模型探索：采样密度** — `oldmodel.html` — 注意力 latent 的旧模型是否被每面 28 个采样点、每步 8 个监督点限制：加大输入点、监督点、递归切分大面，各训 10k 步对照；200k 模型在切分网格上的推理。
-*   **纹理 VAE 汇报** — `vae.html` — 注意力 latent 与表 latent 的架构对照与汇总结果（held-out 24.73 → 32.43 dB），按面数分档、3D 渲染 PSNR、推理时改锚点上限、KL 权重与 latent 信息量，交互式 3D / 多视角 / 细节裁剪三种定性对比。
-*   **微调对照与 PBR VAE** — `ftpbr.html` — 目前最活跃的页面。单变量微调对照 A–E；5 通道（albedo + 金属度 + 粗糙度）PBR VAE 从头训 100k，续训到 200k（放开坍缩通道的 KL、加 EMA）再到 300k（去掉 KL 和后验采样）；与 TRELLIS.2 纹理 VAE 的同口径对比；推理时加密锚点、按纹理细分面；单个 latent token 的作用范围可视化；KL 权重对照。
-*   **纹理 DiT** — `dit.html` — 在表 latent 上训练扩散 transformer：无条件生成的面间一致性问题（"迪斯科球"）、图像条件接入、12 个版本的迭代与全规模训练状态。
+*   **[Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html)** — `index.html` — 把纹理 VAE 从 2.3 万双鞋扩展到 Objaverse 12 万个物体（4 节点 × 4 × H100，10 万步）。数据筛选、训练曲线、按面类型的误差诊断、GT / 重建 / 逐面均值的同屏 3D 对比，以及 Round Q 对高频瓶颈的定位。
+*   **[Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html)** — `roundq.html` — 把"latent 为什么丢面内细节"追到机制层面（排除 → 定位 → 构造），据此把 latent 从 8192 个注意力向量改成按锚点、槽位、角点组织的表。小规模验证与全规模结果（held-out 25.89 → 28.83 dB）。
+*   **[旧模型探索：采样密度](https://caesarrwang.github.io/tritexture/oldmodel.html)** — `oldmodel.html` — 注意力 latent 的旧模型是否被每面 28 个采样点、每步 8 个监督点限制：加大输入点、监督点、递归切分大面，各训 10k 步对照；200k 模型在切分网格上的推理。
+*   **[纹理 VAE 汇报](https://caesarrwang.github.io/tritexture/vae.html)** — `vae.html` — 注意力 latent 与表 latent 的架构对照与汇总结果（held-out 24.73 → 32.43 dB），按面数分档、3D 渲染 PSNR、推理时改锚点上限、KL 权重与 latent 信息量，交互式 3D / 多视角 / 细节裁剪三种定性对比。
+*   **[微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html)** — `ftpbr.html` — 目前最活跃的页面。单变量微调对照 A–E；5 通道（albedo + 金属度 + 粗糙度）PBR VAE 从头训 100k，续训到 200k（放开坍缩通道的 KL、加 EMA）再到 300k（去掉 KL 和后验采样）；与 TRELLIS.2 纹理 VAE 的同口径对比；推理时加密锚点、按纹理细分面；单个 latent token 的作用范围可视化；KL 权重对照。
+*   **[纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html)** — `dit.html` — 在表 latent 上训练扩散 transformer：无条件生成的面间一致性问题（"迪斯科球"）、图像条件接入、12 个版本的迭代与全规模训练状态。
 
 各页顶部有跳到其他页面的导航条。页面里的数字都由生成脚本从训练产物（`metrics.jsonl`、评测 json）实时读出，不是手填的。
 
