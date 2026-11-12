@@ -6,21 +6,21 @@ TriTex · 原生网格上的逐面纹理 VAE 与纹理生成
 快速导航
 --------
 
-| 页面 | 内容 | 阶段 |
-|---|---|---|
-| [Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html) | 从 2.3 万双鞋扩展到 Objaverse 12 万个物体；误差诊断；GT / 重建 / 均值 3D 对比 | 2026-10 上旬 |
-| [Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html) | latent 丢面内细节的机制定位；表 latent 设计与全规模结果 | 2026-10 中旬 |
-| [旧模型探索：采样密度](https://caesarrwang.github.io/tritexture/oldmodel.html) | 输入点 / 监督点 / 大面切分的 10k 步对照 | 2026-10 下旬 |
-| [纹理 VAE 汇报](https://caesarrwang.github.io/tritexture/vae.html) | 注意力 latent 与表 latent 的架构对照与汇总结果 | 2026-10 下旬 |
-| [微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html) | 微调对照 A–E；5 通道 PBR VAE 100k → 300k；TRELLIS.2 对比；推理时加密锚点 / 细分；latent 作用范围；KL 权重对照 | 2026-10 下旬至今 |
-| [纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html) | 表 latent 上的扩散 transformer：面间一致性、图像条件 | 2026-10 中旬起 |
+| 页面 | 内容 | 实验时间 | 最近更新 |
+|---|---|---|---|
+| [Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html) | 从 2.3 万双鞋扩展到 Objaverse 12 万个物体；误差诊断；GT / 重建 / 均值 3D 对比 | 2026-10-11 → 10-14 | 2026-10-27 |
+| [Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html) | latent 丢面内细节的机制定位；表 latent 设计与全规模结果 | 2026-10-14 → 10-17 | 2026-10-19 |
+| [旧模型探索：采样密度](https://caesarrwang.github.io/tritexture/oldmodel.html) | 输入点 / 监督点 / 大面切分的 10k 步对照 | 2026-10-19 → 10-26 | 2026-10-27 |
+| [纹理 VAE 汇报](https://caesarrwang.github.io/tritexture/vae.html) | 注意力 latent 与表 latent 的架构对照与汇总结果 | 2026-10-19 → 10-20 | 2026-10-20 |
+| [微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html) | 微调对照 A–E；5 通道 PBR VAE 100k → 300k；TRELLIS.2 对比；推理时加密锚点 / 细分；latent 作用范围；KL 权重对照 | 2026-10-23 → 进行中 | 2026-11-12 |
+| [纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html) | 表 latent 上的扩散 transformer：面间一致性、图像条件 | 2026-10-17 → 10-20 | 2026-10-20 |
 
 TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、不烘焙多视角图），用一组落在表面上的 latent token 读写。这个仓库是实验报告站：每个页面对应一个阶段的实验，含训练曲线、定量表、three.js 交互式 3D 对比和细节裁剪。页面之间按时间和依赖关系排列如下，建议按顺序读；只看结论可以直接看 `ftpbr.html` 的第 1 节。
 
 内容
 ----
 
-按阅读顺序（也是实验的时间顺序）：
+按阅读顺序（也是实验的时间顺序）。表中的实验时间取自各页正文记录的日期和首次提交日期，最近更新是该页文件的最后一次提交：
 
 *   **[Round P：Objaverse 全规模基线](https://caesarrwang.github.io/tritexture/index.html)** — `index.html` — 把纹理 VAE 从 2.3 万双鞋扩展到 Objaverse 12 万个物体（4 节点 × 4 × H100，10 万步）。数据筛选、训练曲线、按面类型的误差诊断、GT / 重建 / 逐面均值的同屏 3D 对比，以及 Round Q 对高频瓶颈的定位。
 *   **[Round Q 续：表 latent](https://caesarrwang.github.io/tritexture/roundq.html)** — `roundq.html` — 把"latent 为什么丢面内细节"追到机制层面（排除 → 定位 → 构造），据此把 latent 从 8192 个注意力向量改成按锚点、槽位、角点组织的表。小规模验证与全规模结果（held-out 25.89 → 28.83 dB）。
