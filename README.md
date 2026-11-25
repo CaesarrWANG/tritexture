@@ -15,6 +15,7 @@ TriTex · 原生网格上的逐面纹理 VAE 与纹理生成
 | [纹理 VAE 汇报](https://caesarrwang.github.io/tritexture/vae.html) | 注意力 latent 与表 latent 的架构对照与汇总结果 | 2026-10-19 → 10-20 | 2026-10-20 |
 | [微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html) | 微调对照 A–E；5 通道 PBR VAE 100k → 300k；TRELLIS.2 对比；推理时加密锚点 / 细分；latent 作用范围；KL 权重对照 | 2026-10-23 → 进行中 | 2026-11-12 |
 | [纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html) | 表 latent 上的扩散 transformer：面间一致性、图像条件 | 2026-10-17 → 10-20 | 2026-10-20 |
+| [渐进分辨率 VAE](https://caesarrwang.github.io/tritexture/prog.html) | 大面切分阈值五档从 1/1024 逐步细化到 1/65536，每档末尾的交互式 3D 对比 | 2026-11-22 → 训练中 | 2026-11-26 |
 
 TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、不烘焙多视角图），用一组落在表面上的 latent token 读写。这个仓库是实验报告站：每个页面对应一个阶段的实验，含训练曲线、定量表、three.js 交互式 3D 对比和细节裁剪。页面之间按时间和依赖关系排列如下，建议按顺序读；只看结论可以直接看 `ftpbr.html` 的第 1 节。
 
@@ -30,6 +31,7 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
 *   **[纹理 VAE 汇报](https://caesarrwang.github.io/tritexture/vae.html)** — `vae.html` — 注意力 latent 与表 latent 的架构对照与汇总结果（held-out 24.73 → 32.43 dB），按面数分档、3D 渲染 PSNR、推理时改锚点上限、KL 权重与 latent 信息量，交互式 3D / 多视角 / 细节裁剪三种定性对比。
 *   **[微调对照与 PBR VAE](https://caesarrwang.github.io/tritexture/ftpbr.html)** — `ftpbr.html` — 目前最活跃的页面。单变量微调对照 A–E；5 通道（albedo + 金属度 + 粗糙度）PBR VAE 从头训 100k，续训到 200k（放开坍缩通道的 KL、加 EMA）再到 300k（去掉 KL 和后验采样）；与 TRELLIS.2 纹理 VAE 的同口径对比；推理时加密锚点、按纹理细分面；单个 latent token 的作用范围可视化；KL 权重对照。
 *   **[纹理 DiT](https://caesarrwang.github.io/tritexture/dit.html)** — `dit.html` — 在表 latent 上训练扩散 transformer：无条件生成的面间一致性问题（"迪斯科球"）、图像条件接入、12 个版本的迭代与全规模训练状态。
+*   **[渐进分辨率 VAE](https://caesarrwang.github.io/tritexture/prog.html)** — `prog.html` — 同一 PBR VAE 从零开始在五档切分阈值上逐步训练（看图升档），与全程 1/65536 的主运行按步数和训练小时对比；每个展示案例一个 3D 查看器，并排五档末尾的模型。
 
 每页顶部有一条固定的导航栏：左侧“仓库主页 · 总索引”回到本 README，中间按阅读顺序列出六个页面并高亮当前页，右侧“上一篇 / 下一篇”。导航栏第二行是本页各节的跳转按钮，随滚动高亮当前节；每节的锚点固定为节号（`#s3`、`#s3-8`），可以直接链接到某一节，例如 [ftpbr.html#s3-3 定量结果](https://caesarrwang.github.io/tritexture/ftpbr.html#s3-3)、[#s3-8 续训到 300k](https://caesarrwang.github.io/tritexture/ftpbr.html#s3-8)、[#s3-12 KL 权重对照](https://caesarrwang.github.io/tritexture/ftpbr.html#s3-12)。页面里的数字都由生成脚本从训练产物（`metrics.jsonl`、评测 json）实时读出，不是手填的。
 
@@ -43,6 +45,7 @@ TriTex 把纹理表示为三角网格每个面上的格点颜色（不展 UV、�
     vae.html              纹理 VAE 汇报
     ftpbr.html            微调对照与 PBR VAE
     dit.html              纹理 DiT
+    prog.html             渐进分辨率 VAE
     cases/<uid>/          交互式 3D 对比用的资产：几何 .glb、GT / 重建 / 基线贴图、锚点点云、切分网格、latent 影响图
     overview/             展示页的合成图
     ftpbr/ vae/ dit/ oldmodel/ roundq/   各页的静态图：训练曲线、多视角渲染、细节裁剪、架构图

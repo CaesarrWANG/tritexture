@@ -1,0 +1,523 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>渐进分辨率 VAE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: a single reading column (72ch) with full-bleed-ish figure rows; quiet lab-notebook treatment, blue/orange series colours */
+:root{--bg:#f7f7f4;--surface:#fcfcfb;--fg:#15171a;--fg2:#5b5f66;--grid:#e3e4e0;--line:#d6d8d3;--accent:#1c5cab;--accent-soft:#e6eef9;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--good:#0ca30c;--bad:#d03b3b;
+  --font-body:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;--font-ui:"Noto Sans SC",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151614;--surface:#1a1a19;--fg:#f2f2ee;--fg2:#b9bbb3;--grid:#2c2d2a;--line:#363733;--accent:#6da7ec;--accent-soft:#1e2a3a;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.65;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-inline:20px}
+header h1{font-size:30px;line-height:1.2;margin:0 0 6px;text-wrap:balance;font-weight:700}
+header .sub{color:var(--fg2);margin:0 0 4px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2);margin:0 0 8px}
+h2{font-size:21px;margin:48px 0 12px;padding-top:20px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:16px;margin:22px 0 8px}
+p,li{max-width:72ch} ul{padding-left:1.2em}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0 8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.tile .l{font-size:12.5px;color:var(--fg2)} .tile .v{font-size:26px;font-weight:600;line-height:1.15;margin-top:2px} .tile .d{font-size:12.5px;color:var(--fg2);margin-top:4px}
+.v.bad{color:var(--bad)} .v.good{color:var(--good)}
+.figrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+figure.wide{grid-column:1/-1}
+figcaption{font-size:13px;color:var(--fg2);margin-top:8px;max-width:none}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--fg2);margin:4px 0 0} .legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--k)}
+.legend .dash::before{height:0;border-top:2px dashed var(--fg2);background:none}
+.tablewrap{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-size:13.5px;min-width:520px;background:var(--surface)} th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--fg2);font-size:12.5px;background:var(--bg)} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono);font-size:12.5px}
+td.pos{color:var(--good);font-weight:600} td.neg{color:var(--bad);font-weight:600}
+code,.mono{font-family:var(--font-mono);font-size:.9em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:72ch}
+.callout p{margin:0 0 6px} .callout p:last-child{margin:0}
+img{max-width:100%;height:auto;border-radius:4px;display:block}
+.status{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;margin-left:6px}
+
+.case{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;margin:16px 0;min-width:0}
+.casehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px} .meta{color:var(--fg2);font-size:13px} .meta .pos{color:var(--good);font-weight:600} .meta .neg{color:var(--bad);font-weight:600}
+.canvaswrap{position:relative;width:100%;aspect-ratio:3/1.15;background:var(--bg);border-radius:6px;overflow:hidden;max-width:100%}
+.canvaswrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.canvaswrap .poster{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:100%;width:auto;object-fit:contain;opacity:.9}
+.canvaswrap .loadmsg{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--fg2);background:var(--surface);padding:2px 8px;border-radius:999px}
+.vlabels{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;font-size:12.5px;color:var(--fg2);margin-top:6px}
+.ctrl{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--fg2);margin-top:8px} .ctrl label{display:inline-flex;gap:4px;align-items:center;cursor:pointer}
+.ctrl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer} .ctrl button:focus-visible,.ctrl input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p.small{font-size:13px;color:var(--fg2)}
+.texpanel{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.texlbl{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;color:var(--fg2);margin-bottom:8px}
+.texlbl button{font:inherit;font-size:12.5px;padding:3px 10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;cursor:pointer}
+.texpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:640px}
+.texpair.big{max-width:none}
+.texpair figure{margin:0;padding:0;border:0;background:none;min-width:0}
+.texpair img{width:100%;height:auto;aspect-ratio:1/1;object-fit:contain;background:#8a8a86;border:1px solid var(--line);border-radius:4px;display:block}
+.texpair figcaption{font-size:12px;color:var(--fg2);margin-top:4px;text-align:center}
+
+@media (max-width:640px){.canvaswrap{aspect-ratio:3/1.6}}
+.sitenav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding:8px 0;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.sitenav a{color:var(--accent);text-decoration:none;padding:3px 8px;border-radius:6px;border:1px solid transparent;white-space:nowrap} .sitenav a:hover{border-color:var(--line);background:var(--surface)}
+.sitenav .home{font-weight:600;border-color:var(--line)} .sitenav .cur{font-weight:700;color:var(--fg);background:var(--accent-soft);border-color:var(--line)} .sitenav .lbl,.sitenav .arr{color:var(--fg2)}
+.sitenav .pn{margin-left:auto;display:flex;gap:6px} .sitenav .pn a{border-color:var(--line)}
+footer{margin-top:48px;color:var(--fg2);font-size:13px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){header h1{font-size:24px} h2{font-size:19px}}
+</style><style>.legend span::before{background:var(--c,var(--fg2))} [hidden]{display:none!important}</style>
+<style>.case .canvaswrap{aspect-ratio:7/1.55} @media (max-width:700px){.case .canvaswrap{aspect-ratio:7/3}}
+.vlabels span{font-size:11.5px} .texpair figcaption{font-size:11.5px}
+details.more{margin:8px 0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px} details.more summary{cursor:pointer;font-weight:500;color:var(--accent)}
+.sheet{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px} .sheet img{width:100%;height:auto;display:block;border:1px solid var(--line)}</style>
+<style>.sitenav .secrow{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;padding-top:6px;margin-top:2px;border-top:1px dashed var(--line);font-size:12.5px}
+.sitenav .secrow .lbl{margin-right:2px}.sitenav .secrow a{padding:2px 7px;border-color:var(--line);color:var(--fg2)}.sitenav .secrow a.sub{border-style:dashed;font-size:12px}
+.sitenav .secrow a.on{color:var(--fg);background:var(--accent-soft);font-weight:600}h2,h3{scroll-margin-top:110px}</style></head><body><div class="wrap">
+<header>
+<nav class="sitenav"><a class="home" href="https://github.com/CaesarrWANG/tritexture#readme">⌂ 仓库主页 · 总索引</a><a class="home" href="overview.html">✦ 项目总览</a><span class="lbl">按阅读顺序：</span><a href="index.html">1 · Round P 基线</a><span class="arr">›</span><a href="roundq.html">2 · Round Q 续：表 latent</a><span class="arr">›</span><a href="oldmodel.html">3 · 旧模型采样密度</a><span class="arr">›</span><a href="vae.html">4 · 纹理 VAE 汇报</a><span class="arr">›</span><a href="ftpbr.html">5 · 微调对照与 PBR VAE</a><span class="arr">›</span><a href="dit.html">6 · 纹理 DiT</a><span class="arr">›</span><span class="cur">7 · 渐进分辨率 VAE</span><span class="pn"><a href="dit.html" title="6 · 纹理 DiT">← 上一篇</a></span><span class="secrow"><span class="lbl">本页跳转：</span><a href="#s1" class="top" title="1. 设置">1 设置</a><a href="#s2" class="top" title="2. 每档用时与固定口径结果">2 每档用时与固定口径结果</a><a href="#s3" class="top" title="3. 交互式 3D：每档末尾的模型">3 交互式 3D</a><a href="#s4" class="top" title="4. 升档时看的对比图">4 升档时看的对比图</a><a href="#s5" class="top" title="5. 目前的判断">5 目前的判断</a></span></nav>
+<p class="eyebrow">TriTex · PBR 纹理 VAE · 2026-11-22 起，训练中</p>
+<h1>渐进分辨率训练：从 1/1024 到 1/65536 的五档阶梯</h1>
+<p class="sub">问题：全程在最细的 1/65536 切分上训练太慢（每步约 7 秒），而训练早期学的只是颜色和大结构。做法：同一模型从零开始，大面切分阈值分五档逐步变细，每一档在它自己的尺度上看图，细节不再变好就升档。目前在第 5 档，70,880 步。</p>
+</header>
+<h2 id="s1">1. 设置</h2>
+<p>模型与配方和全程 1/65536 的主运行完全相同：约 248M 参数，8192 个 64 维 latent，编码器 3 层、解码器 2 层交叉注意力，关闭 KL，5 通道（albedo + metallic + roughness），学习率恒定 3e-4，每步 16 个 mesh。唯一不同的是训练时的在线大面切分阈值：每档面积阈值缩小 4 倍（三角形边长减半），最后两档缩小 2 倍，因为那是最贵的一段。</p>
+<p><strong>升档规则（用户定）：</strong>看图，不看 PSNR。每档在自己的尺度上判断：第 1、2 档看整体渲染，第 3 档看中等放大，第 4、5 档看高倍裁剪。最近三个评估点（间隔 2500 步）都看不出明显改善、且本档至少跑满 5000 步（第 1、2 档）或 1 万步（第 3、4 档）就升档；每档 3 万步强制升档。升档在训练中直接切换，不重启。每档 1 万步时保存一份完整训练状态，留作以后"提前升档"的对照。</p>
+<h2 id="s2">2. 每档用时与固定口径结果</h2>
+<p>训练器自己的验证随当前阈值变化，跨档不可比。下面的数字都用同一把尺子：所有模型都在 1/65536 切分的网格上推理。</p>
+<div class="tablewrap"><table><tr><th>档</th><th>切分阈值</th><th class=n>步数</th><th class=n>秒/步</th><th class=n>训练小时</th><th class=n>末尾快照</th><th class=n>网格 area / face</th><th class=n>渲染 albedo</th><th class=n>高频还原</th></tr><tr><td>1</td><td>1/1024</td><td class=n>0 → 19,820</td><td class=n>1.3</td><td class=n>7.6</td><td class=n>17.5k</td><td class=n>22.23 / 22.38</td><td class=n>23.73</td><td class=n>0.641</td></tr><tr><td>2</td><td>1/4096</td><td class=n>19,820 → 33,520</td><td class=n>1.5</td><td class=n>6.1</td><td class=n>32.5k</td><td class=n>23.50 / 23.73</td><td class=n>25.30</td><td class=n>0.718</td></tr><tr><td>3</td><td>1/16384</td><td class=n>33,520 → 47,900</td><td class=n>2.3</td><td class=n>9.9</td><td class=n>47.5k</td><td class=n>23.93 / 24.25</td><td class=n>26.09</td><td class=n>0.761</td></tr><tr><td>4</td><td>1/32768</td><td class=n>47,900 → 61,900</td><td class=n>3.4</td><td class=n>13.9</td><td class=n>60k</td><td class=n>24.37 / 25.06</td><td class=n>27.09</td><td class=n>0.790</td></tr><tr><td>5</td><td>1/65536</td><td class=n>61,900 → 70,880（进行中）</td><td class=n>7.0</td><td class=n>20.2</td><td class=n>70k</td><td class=n>24.81 / 25.39</td><td class=n>27.54</td><td class=n>0.807</td></tr><tr><td>参照</td><td>全程 1/65536</td><td class=n>0 → 50,000</td><td class=n>约 7</td><td class=n>98.4</td><td class=n>50k</td><td class=n>24.20 / 24.38</td><td class=n>26.51</td><td class=n>0.762</td></tr></table></div>
+<p class="small">网格 = 32 个 val mesh 的面积 / 面平均 PSNR（dB），const 基线 26.53。渲染 albedo = 10 个展示案例 4 视角渲染的前景 PSNR。高频还原 = 渲染图高频成分中被正确重建的比例。训练小时是累计计算时间，排队和暂停不计。第 5 档后段有一段在 2 节点上跑（等效批量不变，每步约 12 秒），因为集群从 11 月 25 日起约一半 GPU 节点进入维护。</p>
+<div class="figrow"><figure><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="固定口径：1/65536 网格上的 held-out PSNR (dB)，32 个 val mesh" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">固定口径：1/65536 网格上的 held-out PSNR (dB)，32 个 val mesh</text>
+<line x1="44" x2="666" y1="225.8" y2="225.8" stroke="var(--grid)"/>
+<text x="38" y="229.3" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="666" y1="177.9" y2="177.9" stroke="var(--grid)"/>
+<text x="38" y="181.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="666" y1="130.0" y2="130.0" stroke="var(--grid)"/>
+<text x="38" y="133.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="666" y1="82.2" y2="82.2" stroke="var(--grid)"/>
+<text x="38" y="85.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="666" y1="34.3" y2="34.3" stroke="var(--grid)"/>
+<text x="38" y="37.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
+<text x="205.3" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="389.6" y="282" text-anchor="middle" fill="var(--fg2)">40k</text>
+<text x="573.9" y="282" text-anchor="middle" fill="var(--fg2)">60k</text>
+<text x="355" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<line x1="44" x2="666" y1="69.5" y2="69.5" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="666" y="65.5" text-anchor="end" fill="var(--fg2)">const 基线 26.53 26.53</text>
+<line x1="44" x2="666" y1="125.2" y2="125.2" stroke="var(--fg2)" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="666" y="121.2" text-anchor="end" fill="var(--fg2)">全程 1/65536 主运行 @50k：24.20 24.20</text>
+<polyline points="44.0,230.1 67.0,211.1 90.1,186.5 113.1,181.7 136.1,179.6 159.2,168.3 182.2,172.4 205.3,156.4 228.3,150.8 251.3,146.5 274.4,145.7 297.4,147.8 320.4,142.0 343.5,135.2 366.5,130.5 389.6,131.1 412.6,128.4 435.6,128.0 458.7,131.6 481.7,124.7 504.7,120.6 527.8,122.7 550.8,113.8 573.9,121.3 596.9,116.6 619.9,115.6 643.0,110.3 666.0,110.6" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="230.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 2k · 19.82 dB</title></circle>
+<circle cx="67.0" cy="211.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 5k · 20.61 dB</title></circle>
+<circle cx="90.1" cy="186.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 7k · 21.64 dB</title></circle>
+<circle cx="113.1" cy="181.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 10k · 21.84 dB</title></circle>
+<circle cx="136.1" cy="179.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 12k · 21.93 dB</title></circle>
+<circle cx="159.2" cy="168.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 15k · 22.40 dB</title></circle>
+<circle cx="182.2" cy="172.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 17k · 22.23 dB</title></circle>
+<circle cx="205.3" cy="156.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 20k · 22.90 dB</title></circle>
+<circle cx="228.3" cy="150.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 22k · 23.13 dB</title></circle>
+<circle cx="251.3" cy="146.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 25k · 23.31 dB</title></circle>
+<circle cx="274.4" cy="145.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 27k · 23.35 dB</title></circle>
+<circle cx="297.4" cy="147.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 30k · 23.26 dB</title></circle>
+<circle cx="320.4" cy="142.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 32k · 23.50 dB</title></circle>
+<circle cx="343.5" cy="135.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 35k · 23.78 dB</title></circle>
+<circle cx="366.5" cy="130.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 37k · 23.98 dB</title></circle>
+<circle cx="389.6" cy="131.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 40k · 23.95 dB</title></circle>
+<circle cx="412.6" cy="128.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 42k · 24.07 dB</title></circle>
+<circle cx="435.6" cy="128.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 45k · 24.08 dB</title></circle>
+<circle cx="458.7" cy="131.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 47k · 23.93 dB</title></circle>
+<circle cx="481.7" cy="124.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 50k · 24.22 dB</title></circle>
+<circle cx="504.7" cy="120.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 52k · 24.40 dB</title></circle>
+<circle cx="527.8" cy="122.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 55k · 24.31 dB</title></circle>
+<circle cx="550.8" cy="113.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 57k · 24.68 dB</title></circle>
+<circle cx="573.9" cy="121.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 60k · 24.37 dB</title></circle>
+<circle cx="596.9" cy="116.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 62k · 24.56 dB</title></circle>
+<circle cx="619.9" cy="115.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 65k · 24.60 dB</title></circle>
+<circle cx="643.0" cy="110.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 67k · 24.83 dB</title></circle>
+<circle cx="666.0" cy="110.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>area · 70k · 24.81 dB</title></circle>
+<text x="660.0" y="102.6" text-anchor="end" fill="var(--s1)" font-weight="600">area 24.81</text>
+<polyline points="44.0,232.3 67.0,211.1 90.1,188.5 113.1,183.3 136.1,177.7 159.2,166.6 182.2,168.9 205.3,153.5 228.3,147.7 251.3,142.3 274.4,142.3 297.4,141.2 320.4,136.5 343.5,127.8 366.5,123.2 389.6,122.8 412.6,118.9 435.6,117.8 458.7,124.0 481.7,114.3 504.7,109.2 527.8,110.1 550.8,103.2 573.9,104.7 596.9,104.9 619.9,101.7 643.0,94.4 666.0,96.7" fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="232.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 2k · 19.73 dB</title></circle>
+<circle cx="67.0" cy="211.1" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 5k · 20.61 dB</title></circle>
+<circle cx="90.1" cy="188.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 7k · 21.56 dB</title></circle>
+<circle cx="113.1" cy="183.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 10k · 21.77 dB</title></circle>
+<circle cx="136.1" cy="177.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 12k · 22.01 dB</title></circle>
+<circle cx="159.2" cy="166.6" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 15k · 22.47 dB</title></circle>
+<circle cx="182.2" cy="168.9" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 17k · 22.38 dB</title></circle>
+<circle cx="205.3" cy="153.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 20k · 23.02 dB</title></circle>
+<circle cx="228.3" cy="147.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 22k · 23.26 dB</title></circle>
+<circle cx="251.3" cy="142.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 25k · 23.49 dB</title></circle>
+<circle cx="274.4" cy="142.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 27k · 23.49 dB</title></circle>
+<circle cx="297.4" cy="141.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 30k · 23.54 dB</title></circle>
+<circle cx="320.4" cy="136.5" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 32k · 23.73 dB</title></circle>
+<circle cx="343.5" cy="127.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 35k · 24.10 dB</title></circle>
+<circle cx="366.5" cy="123.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 37k · 24.28 dB</title></circle>
+<circle cx="389.6" cy="122.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 40k · 24.30 dB</title></circle>
+<circle cx="412.6" cy="118.9" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 42k · 24.47 dB</title></circle>
+<circle cx="435.6" cy="117.8" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 45k · 24.51 dB</title></circle>
+<circle cx="458.7" cy="124.0" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 47k · 24.25 dB</title></circle>
+<circle cx="481.7" cy="114.3" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 50k · 24.66 dB</title></circle>
+<circle cx="504.7" cy="109.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 52k · 24.87 dB</title></circle>
+<circle cx="527.8" cy="110.1" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 55k · 24.83 dB</title></circle>
+<circle cx="550.8" cy="103.2" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 57k · 25.12 dB</title></circle>
+<circle cx="573.9" cy="104.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 60k · 25.06 dB</title></circle>
+<circle cx="596.9" cy="104.9" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 62k · 25.05 dB</title></circle>
+<circle cx="619.9" cy="101.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 65k · 25.19 dB</title></circle>
+<circle cx="643.0" cy="94.4" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 67k · 25.49 dB</title></circle>
+<circle cx="666.0" cy="96.7" r="3" fill="var(--s3)" stroke="var(--surface)" stroke-width="1.5"><title>face · 70k · 25.39 dB</title></circle>
+<text x="660.0" y="88.7" text-anchor="end" fill="var(--s3)" font-weight="600">face 25.39</text>
+</svg><div class="legend"><span style="--c:var(--s1)">area</span><span style="--c:var(--s3)">face</span></div></figure><figure><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="高频还原比例（渲染图减去 3 像素高斯模糊后的成分，1 为完美）" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">高频还原比例（渲染图减去 3 像素高斯模糊后的成分，1 为完美）</text>
+<line x1="44" x2="666" y1="249.7" y2="249.7" stroke="var(--grid)"/>
+<text x="38" y="253.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">0.5</text>
+<line x1="44" x2="666" y1="191.6" y2="191.6" stroke="var(--grid)"/>
+<text x="38" y="195.1" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">0.6</text>
+<line x1="44" x2="666" y1="133.5" y2="133.5" stroke="var(--grid)"/>
+<text x="38" y="137.0" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">0.7</text>
+<line x1="44" x2="666" y1="75.3" y2="75.3" stroke="var(--grid)"/>
+<text x="38" y="78.8" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">0.8</text>
+<text x="205.3" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="389.6" y="282" text-anchor="middle" fill="var(--fg2)">40k</text>
+<text x="573.9" y="282" text-anchor="middle" fill="var(--fg2)">60k</text>
+<text x="355" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)"></text>
+<polyline points="44.0,226.2 67.0,235.3 90.1,205.6 113.1,193.4 136.1,187.5 159.2,172.6 182.2,167.7 205.3,149.7 228.3,140.0 251.3,133.6 274.4,132.4 297.4,125.4 320.4,123.1 343.5,111.6 366.5,106.5 389.6,102.7 412.6,99.4 435.6,101.0 458.7,98.0 481.7,90.8 504.7,87.8 527.8,85.0 550.8,84.0 573.9,80.9 596.9,79.4 619.9,76.9 643.0,74.3 666.0,71.1" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="226.2" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 2k · 0.54 dB</title></circle>
+<circle cx="67.0" cy="235.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 5k · 0.52 dB</title></circle>
+<circle cx="90.1" cy="205.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 7k · 0.58 dB</title></circle>
+<circle cx="113.1" cy="193.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 10k · 0.60 dB</title></circle>
+<circle cx="136.1" cy="187.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 12k · 0.61 dB</title></circle>
+<circle cx="159.2" cy="172.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 15k · 0.63 dB</title></circle>
+<circle cx="182.2" cy="167.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 17k · 0.64 dB</title></circle>
+<circle cx="205.3" cy="149.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 20k · 0.67 dB</title></circle>
+<circle cx="228.3" cy="140.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 22k · 0.69 dB</title></circle>
+<circle cx="251.3" cy="133.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 25k · 0.70 dB</title></circle>
+<circle cx="274.4" cy="132.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 27k · 0.70 dB</title></circle>
+<circle cx="297.4" cy="125.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 30k · 0.71 dB</title></circle>
+<circle cx="320.4" cy="123.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 32k · 0.72 dB</title></circle>
+<circle cx="343.5" cy="111.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 35k · 0.74 dB</title></circle>
+<circle cx="366.5" cy="106.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 37k · 0.75 dB</title></circle>
+<circle cx="389.6" cy="102.7" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 40k · 0.75 dB</title></circle>
+<circle cx="412.6" cy="99.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 42k · 0.76 dB</title></circle>
+<circle cx="435.6" cy="101.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 45k · 0.76 dB</title></circle>
+<circle cx="458.7" cy="98.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 47k · 0.76 dB</title></circle>
+<circle cx="481.7" cy="90.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 50k · 0.77 dB</title></circle>
+<circle cx="504.7" cy="87.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 52k · 0.78 dB</title></circle>
+<circle cx="527.8" cy="85.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 55k · 0.78 dB</title></circle>
+<circle cx="550.8" cy="84.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 57k · 0.79 dB</title></circle>
+<circle cx="573.9" cy="80.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 60k · 0.79 dB</title></circle>
+<circle cx="596.9" cy="79.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 62k · 0.79 dB</title></circle>
+<circle cx="619.9" cy="76.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 65k · 0.80 dB</title></circle>
+<circle cx="643.0" cy="74.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 67k · 0.80 dB</title></circle>
+<circle cx="666.0" cy="71.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 70k · 0.81 dB</title></circle>
+<text x="660.0" y="63.1" text-anchor="end" fill="var(--s1)" font-weight="600">渐进分辨率（本运行） 0.81</text>
+<polyline points="113.1,197.4 228.3,139.3 366.5,110.2 481.7,97.4" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="113.1" cy="197.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 10k · 0.59 dB</title></circle>
+<circle cx="228.3" cy="139.3" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 22k · 0.69 dB</title></circle>
+<circle cx="366.5" cy="110.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 37k · 0.74 dB</title></circle>
+<circle cx="481.7" cy="97.4" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 50k · 0.76 dB</title></circle>
+<text x="475.7" y="89.4" text-anchor="end" fill="var(--s2)" font-weight="600">全程 1/65536 主运行 0.76</text>
+</svg><div class="legend"><span style="--c:var(--s1)">渐进分辨率</span><span style="--c:var(--s2)">全程 1/65536</span></div></figure></div>
+<div class="figrow"><figure><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="10 个展示案例：4 视角渲染 albedo PSNR (dB)，按训练步数" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">10 个展示案例：4 视角渲染 albedo PSNR (dB)，按训练步数</text>
+<line x1="44" x2="666" y1="249.7" y2="249.7" stroke="var(--grid)"/>
+<text x="38" y="253.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="666" y1="201.9" y2="201.9" stroke="var(--grid)"/>
+<text x="38" y="205.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="666" y1="154.0" y2="154.0" stroke="var(--grid)"/>
+<text x="38" y="157.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="666" y1="106.1" y2="106.1" stroke="var(--grid)"/>
+<text x="38" y="109.6" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="666" y1="58.2" y2="58.2" stroke="var(--grid)"/>
+<text x="38" y="61.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
+<text x="205.3" y="282" text-anchor="middle" fill="var(--fg2)">20k</text>
+<text x="389.6" y="282" text-anchor="middle" fill="var(--fg2)">40k</text>
+<text x="573.9" y="282" text-anchor="middle" fill="var(--fg2)">60k</text>
+<text x="355" y="296" text-anchor="middle" fill="var(--fg2)">step</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<polyline points="44.0,221.3 67.0,199.0 90.1,183.1 113.1,173.4 136.1,176.8 159.2,154.9 182.2,160.5 205.3,142.6 228.3,140.4 251.3,126.6 274.4,125.5 297.4,125.8 320.4,122.9 343.5,108.4 366.5,104.9 389.6,101.9 412.6,98.6 435.6,102.6 458.7,103.9 481.7,98.0 504.7,86.3 527.8,82.3 550.8,79.6 573.9,80.0 596.9,83.3 619.9,81.4 643.0,69.1 666.0,69.3" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="221.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 2k · 21.19 dB</title></circle>
+<circle cx="67.0" cy="199.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 5k · 22.12 dB</title></circle>
+<circle cx="90.1" cy="183.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 7k · 22.79 dB</title></circle>
+<circle cx="113.1" cy="173.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 10k · 23.19 dB</title></circle>
+<circle cx="136.1" cy="176.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 12k · 23.05 dB</title></circle>
+<circle cx="159.2" cy="154.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 15k · 23.96 dB</title></circle>
+<circle cx="182.2" cy="160.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 17k · 23.73 dB</title></circle>
+<circle cx="205.3" cy="142.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 20k · 24.48 dB</title></circle>
+<circle cx="228.3" cy="140.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 22k · 24.57 dB</title></circle>
+<circle cx="251.3" cy="126.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 25k · 25.15 dB</title></circle>
+<circle cx="274.4" cy="125.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 27k · 25.19 dB</title></circle>
+<circle cx="297.4" cy="125.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 30k · 25.18 dB</title></circle>
+<circle cx="320.4" cy="122.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 32k · 25.30 dB</title></circle>
+<circle cx="343.5" cy="108.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 35k · 25.91 dB</title></circle>
+<circle cx="366.5" cy="104.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 37k · 26.05 dB</title></circle>
+<circle cx="389.6" cy="101.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 40k · 26.18 dB</title></circle>
+<circle cx="412.6" cy="98.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 42k · 26.32 dB</title></circle>
+<circle cx="435.6" cy="102.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 45k · 26.15 dB</title></circle>
+<circle cx="458.7" cy="103.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 47k · 26.09 dB</title></circle>
+<circle cx="481.7" cy="98.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 50k · 26.34 dB</title></circle>
+<circle cx="504.7" cy="86.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 52k · 26.83 dB</title></circle>
+<circle cx="527.8" cy="82.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 55k · 27.00 dB</title></circle>
+<circle cx="550.8" cy="79.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 57k · 27.11 dB</title></circle>
+<circle cx="573.9" cy="80.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 60k · 27.09 dB</title></circle>
+<circle cx="596.9" cy="83.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 62k · 26.96 dB</title></circle>
+<circle cx="619.9" cy="81.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 65k · 27.03 dB</title></circle>
+<circle cx="643.0" cy="69.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 67k · 27.55 dB</title></circle>
+<circle cx="666.0" cy="69.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 70k · 27.54 dB</title></circle>
+<text x="660.0" y="61.3" text-anchor="end" fill="var(--s1)" font-weight="600">渐进分辨率（本运行） 27.54</text>
+<polyline points="113.1,177.2 228.3,130.8 366.5,104.7 481.7,93.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="113.1" cy="177.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 10k · 23.03 dB</title></circle>
+<circle cx="228.3" cy="130.8" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 22k · 24.97 dB</title></circle>
+<circle cx="366.5" cy="104.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 37k · 26.06 dB</title></circle>
+<circle cx="481.7" cy="93.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 50k · 26.51 dB</title></circle>
+<text x="475.7" y="85.9" text-anchor="end" fill="var(--s2)" font-weight="600">全程 1/65536 主运行 26.51</text>
+</svg><div class="legend"><span style="--c:var(--s1)">渐进分辨率</span><span style="--c:var(--s2)">全程 1/65536</span></div></figure><figure><svg viewBox="0 0 680 300" width="100%" role="img" aria-label="同一指标按训练小时数（16 张 H100 等效，排队与暂停不计）" style="max-width:680px;font-family:var(--font-ui);font-size:11px">
+<text x="44" y="16" fill="var(--fg)" font-weight="600" font-size="12.5">同一指标按训练小时数（16 张 H100 等效，排队与暂停不计）</text>
+<line x1="44" x2="666" y1="249.7" y2="249.7" stroke="var(--grid)"/>
+<text x="38" y="253.2" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">20</text>
+<line x1="44" x2="666" y1="201.9" y2="201.9" stroke="var(--grid)"/>
+<text x="38" y="205.4" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">22</text>
+<line x1="44" x2="666" y1="154.0" y2="154.0" stroke="var(--grid)"/>
+<text x="38" y="157.5" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">24</text>
+<line x1="44" x2="666" y1="106.1" y2="106.1" stroke="var(--grid)"/>
+<text x="38" y="109.6" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">26</text>
+<line x1="44" x2="666" y1="58.2" y2="58.2" stroke="var(--grid)"/>
+<text x="38" y="61.7" text-anchor="end" fill="var(--fg2)" style="font-variant-numeric:tabular-nums">28</text>
+<text x="191.2" y="282" text-anchor="middle" fill="var(--fg2)">24 h</text>
+<text x="344.3" y="282" text-anchor="middle" fill="var(--fg2)">48 h</text>
+<text x="497.4" y="282" text-anchor="middle" fill="var(--fg2)">72 h</text>
+<text x="650.5" y="282" text-anchor="middle" fill="var(--fg2)">96 h</text>
+<text x="355" y="296" text-anchor="middle" fill="var(--fg2)">训练小时</text>
+<text transform="translate(11,148) rotate(-90)" text-anchor="middle" fill="var(--fg2)">dB</text>
+<polyline points="44.0,221.3 50.0,199.0 56.3,183.1 62.3,173.4 68.4,176.8 74.6,154.9 80.8,160.5 87.1,142.6 93.9,140.4 101.5,126.6 108.5,125.5 115.3,125.8 122.3,122.9 132.3,108.4 143.1,104.9 154.0,101.9 164.8,98.6 175.8,102.6 186.5,103.9 201.5,98.0 217.3,86.3 233.3,82.3 249.2,79.6 265.0,80.0 284.8,83.3 315.7,81.4 347.2,69.1 386.2,69.3" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="44.0" cy="221.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 0.9313661421007581 · 21.19 dB</title></circle>
+<circle cx="50.0" cy="199.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 1.876182927224371 · 22.12 dB</title></circle>
+<circle cx="56.3" cy="183.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 2.8540339322222605 · 22.79 dB</title></circle>
+<circle cx="62.3" cy="173.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 3.801858428385523 · 23.19 dB</title></circle>
+<circle cx="68.4" cy="176.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 4.758949944376946 · 23.05 dB</title></circle>
+<circle cx="74.6" cy="154.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 5.733334023223983 · 23.96 dB</title></circle>
+<circle cx="80.8" cy="160.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 6.697639924883842 · 23.73 dB</title></circle>
+<circle cx="87.1" cy="142.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 7.681041459374957 · 24.48 dB</title></circle>
+<circle cx="93.9" cy="140.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 8.758498731056848 · 24.57 dB</title></circle>
+<circle cx="101.5" cy="126.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 9.946698601643245 · 25.15 dB</title></circle>
+<circle cx="108.5" cy="125.5" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 11.043924648033249 · 25.19 dB</title></circle>
+<circle cx="115.3" cy="125.8" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 12.102392919394704 · 25.18 dB</title></circle>
+<circle cx="122.3" cy="122.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 13.199199366900656 · 25.30 dB</title></circle>
+<circle cx="132.3" cy="108.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 14.77175288769934 · 25.91 dB</title></circle>
+<circle cx="143.1" cy="104.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 16.466439008845224 · 26.05 dB</title></circle>
+<circle cx="154.0" cy="101.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 18.175805445777044 · 26.18 dB</title></circle>
+<circle cx="164.8" cy="98.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 19.860792465938463 · 26.32 dB</title></circle>
+<circle cx="175.8" cy="102.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 21.585377651254337 · 26.15 dB</title></circle>
+<circle cx="186.5" cy="103.9" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 23.272524570094216 · 26.09 dB</title></circle>
+<circle cx="201.5" cy="98.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 25.615995488034354 · 26.34 dB</title></circle>
+<circle cx="217.3" cy="86.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 28.08941083934572 · 26.83 dB</title></circle>
+<circle cx="233.3" cy="82.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 30.599788898295827 · 27.00 dB</title></circle>
+<circle cx="249.2" cy="79.6" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 33.08934566252761 · 27.11 dB</title></circle>
+<circle cx="265.0" cy="80.0" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 35.578362550470565 · 27.09 dB</title></circle>
+<circle cx="284.8" cy="83.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 38.67308128800657 · 26.96 dB</title></circle>
+<circle cx="315.7" cy="81.4" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 43.52606127189265 · 27.03 dB</title></circle>
+<circle cx="347.2" cy="69.1" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 48.462298386295636 · 27.55 dB</title></circle>
+<circle cx="386.2" cy="69.3" r="3" fill="var(--s1)" stroke="var(--surface)" stroke-width="1.5"><title>渐进分辨率（本运行） · 54.5665633614858 · 27.54 dB</title></circle>
+<text x="380.2" y="61.3" text-anchor="end" fill="var(--s1)" font-weight="600">渐进分辨率（本运行） 27.54</text>
+<polyline points="162.1,177.2 319.2,130.8 508.3,104.7 666.0,93.9" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="162.1" cy="177.2" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 19.4470334808694 · 23.03 dB</title></circle>
+<circle cx="319.2" cy="130.8" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 44.066661368144885 · 24.97 dB</title></circle>
+<circle cx="508.3" cy="104.7" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 73.71501426935195 · 26.06 dB</title></circle>
+<circle cx="666.0" cy="93.9" r="3" fill="var(--s2)" stroke="var(--surface)" stroke-width="1.5"><title>全程 1/65536 主运行 · 98.4279475659132 · 26.51 dB</title></circle>
+<text x="660.0" y="85.9" text-anchor="end" fill="var(--s2)" font-weight="600">全程 1/65536 主运行 26.51</text>
+</svg><div class="legend"><span style="--c:var(--s1)">渐进分辨率</span><span style="--c:var(--s2)">全程 1/65536</span></div></figure></div>
+<p><strong>读法：</strong>按步数看，渐进运行在前几档低于全程 1/65536（粗档训练时看不到细面），到 5 万步时基本持平（渲染 albedo 低 0.17 dB，高频还原高 0.011），之后继续上升；主运行停在 5 万步，之后没有对照。按训练小时看差别很大：主运行到 5 万步用了约 98 小时，渐进运行约 28 小时就达到同样的渲染 PSNR，约 26 小时达到同样的高频还原比例。但数字涨的主要是颜色和中等尺度的图案：在高倍裁剪图上，文字、细翅脉、roughness 斑驳这类最细的内容，两条路线到目前为止都没有学出来（第 4 节）。</p>
+<h2 id="s3">3. 交互式 3D：每档末尾的模型</h2>
+<p>每个案例一个查看器，视口共享相机：真值、五档各自最后一个评估快照、全程 1/65536 主运行的 50k 快照。全部在 1/65536 切分后推理，贴图烘焙到真值的 UV 布局上。视口较多，可勾选"单视图"逐个切换。</p>
+
+<div class="case" data-uid="994aec4131c243dfa4cd2598e79eabaa" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>救护车</strong> <span class="mono">994aec4131c243dfa4cd2598e79eabaa</span> <span class="meta">48,270 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>25.58</strong> · S2 <strong>27.60</strong> · S3 <strong>28.14</strong> · S4 <strong>29.58</strong> · S5 <strong>29.93</strong> · 主运行 <strong>28.50</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/994aec4131c243dfa4cd2598e79eabaa/thumb.jpg" alt="994aec4131c243dfa4cd2598e79eabaa 缩略图" width="480" height="480"><canvas aria-label="994aec4131c243dfa4cd2598e79eabaa 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-994aec41" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-994aec41"> 单视图</label><label><input type="checkbox" class="wire" id="wire-994aec41"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-994aec41" value="0" checked> GT</label><label><input type="radio" name="m-994aec41" value="1"> S1</label><label><input type="radio" name="m-994aec41" value="2"> S2</label><label><input type="radio" name="m-994aec41" value="3"> S3</label><label><input type="radio" name="m-994aec41" value="4"> S4</label><label><input type="radio" name="m-994aec41" value="5"> S5</label><label><input type="radio" name="m-994aec41" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/994aec4131c243dfa4cd2598e79eabaa/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/994aec4131c243dfa4cd2598e79eabaa/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="1aac7b79651d4bad96e49c13d3a8975e" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Rippersnapper</strong> <span class="mono">1aac7b79651d4bad96e49c13d3a8975e</span> <span class="meta">5,746 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>20.18</strong> · S2 <strong>21.39</strong> · S3 <strong>22.40</strong> · S4 <strong>23.15</strong> · S5 <strong>23.72</strong> · 主运行 <strong>22.54</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/1aac7b79651d4bad96e49c13d3a8975e/thumb.jpg" alt="1aac7b79651d4bad96e49c13d3a8975e 缩略图" width="480" height="480"><canvas aria-label="1aac7b79651d4bad96e49c13d3a8975e 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-1aac7b79" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-1aac7b79"> 单视图</label><label><input type="checkbox" class="wire" id="wire-1aac7b79"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-1aac7b79" value="0" checked> GT</label><label><input type="radio" name="m-1aac7b79" value="1"> S1</label><label><input type="radio" name="m-1aac7b79" value="2"> S2</label><label><input type="radio" name="m-1aac7b79" value="3"> S3</label><label><input type="radio" name="m-1aac7b79" value="4"> S4</label><label><input type="radio" name="m-1aac7b79" value="5"> S5</label><label><input type="radio" name="m-1aac7b79" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/1aac7b79651d4bad96e49c13d3a8975e/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="209865ec00284af5b34d3faa999e1baf" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Shadowsun</strong> <span class="mono">209865ec00284af5b34d3faa999e1baf</span> <span class="meta">7,434 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>20.94</strong> · S2 <strong>22.23</strong> · S3 <strong>23.13</strong> · S4 <strong>23.86</strong> · S5 <strong>24.39</strong> · 主运行 <strong>23.12</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/209865ec00284af5b34d3faa999e1baf/thumb.jpg" alt="209865ec00284af5b34d3faa999e1baf 缩略图" width="480" height="480"><canvas aria-label="209865ec00284af5b34d3faa999e1baf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-209865ec" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-209865ec"> 单视图</label><label><input type="checkbox" class="wire" id="wire-209865ec"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-209865ec" value="0" checked> GT</label><label><input type="radio" name="m-209865ec" value="1"> S1</label><label><input type="radio" name="m-209865ec" value="2"> S2</label><label><input type="radio" name="m-209865ec" value="3"> S3</label><label><input type="radio" name="m-209865ec" value="4"> S4</label><label><input type="radio" name="m-209865ec" value="5"> S5</label><label><input type="radio" name="m-209865ec" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/209865ec00284af5b34d3faa999e1baf/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/209865ec00284af5b34d3faa999e1baf/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="60ef2e59ee2a492a9677c75b745cb9a1" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Bee</strong> <span class="mono">60ef2e59ee2a492a9677c75b745cb9a1</span> <span class="meta">51,731 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>22.39</strong> · S2 <strong>23.58</strong> · S3 <strong>24.83</strong> · S4 <strong>25.21</strong> · S5 <strong>25.59</strong> · 主运行 <strong>24.83</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/60ef2e59ee2a492a9677c75b745cb9a1/thumb.jpg" alt="60ef2e59ee2a492a9677c75b745cb9a1 缩略图" width="480" height="480"><canvas aria-label="60ef2e59ee2a492a9677c75b745cb9a1 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-60ef2e59" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-60ef2e59"> 单视图</label><label><input type="checkbox" class="wire" id="wire-60ef2e59"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-60ef2e59" value="0" checked> GT</label><label><input type="radio" name="m-60ef2e59" value="1"> S1</label><label><input type="radio" name="m-60ef2e59" value="2"> S2</label><label><input type="radio" name="m-60ef2e59" value="3"> S3</label><label><input type="radio" name="m-60ef2e59" value="4"> S4</label><label><input type="radio" name="m-60ef2e59" value="5"> S5</label><label><input type="radio" name="m-60ef2e59" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/60ef2e59ee2a492a9677c75b745cb9a1/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<details class="more"><summary>展开其余 6 个案例</summary>
+<div class="case" data-uid="522f50cae5cc4a6c9a7fbd5b4e36bbbf" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Spider-Man</strong> <span class="mono">522f50cae5cc4a6c9a7fbd5b4e36bbbf</span> <span class="meta">99,208 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>21.38</strong> · S2 <strong>23.97</strong> · S3 <strong>25.26</strong> · S4 <strong>26.22</strong> · S5 <strong>27.03</strong> · 主运行 <strong>25.32</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/thumb.jpg" alt="522f50cae5cc4a6c9a7fbd5b4e36bbbf 缩略图" width="480" height="480"><canvas aria-label="522f50cae5cc4a6c9a7fbd5b4e36bbbf 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-522f50ca" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-522f50ca"> 单视图</label><label><input type="checkbox" class="wire" id="wire-522f50ca"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-522f50ca" value="0" checked> GT</label><label><input type="radio" name="m-522f50ca" value="1"> S1</label><label><input type="radio" name="m-522f50ca" value="2"> S2</label><label><input type="radio" name="m-522f50ca" value="3"> S3</label><label><input type="radio" name="m-522f50ca" value="4"> S4</label><label><input type="radio" name="m-522f50ca" value="5"> S5</label><label><input type="radio" name="m-522f50ca" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/522f50cae5cc4a6c9a7fbd5b4e36bbbf/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="6746867266f04bf5aed3b4f0a6df278c" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Soldier</strong> <span class="mono">6746867266f04bf5aed3b4f0a6df278c</span> <span class="meta">31,263 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>26.60</strong> · S2 <strong>28.05</strong> · S3 <strong>28.50</strong> · S4 <strong>29.46</strong> · S5 <strong>29.64</strong> · 主运行 <strong>29.15</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/6746867266f04bf5aed3b4f0a6df278c/thumb.jpg" alt="6746867266f04bf5aed3b4f0a6df278c 缩略图" width="480" height="480"><canvas aria-label="6746867266f04bf5aed3b4f0a6df278c 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-67468672" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-67468672"> 单视图</label><label><input type="checkbox" class="wire" id="wire-67468672"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-67468672" value="0" checked> GT</label><label><input type="radio" name="m-67468672" value="1"> S1</label><label><input type="radio" name="m-67468672" value="2"> S2</label><label><input type="radio" name="m-67468672" value="3"> S3</label><label><input type="radio" name="m-67468672" value="4"> S4</label><label><input type="radio" name="m-67468672" value="5"> S5</label><label><input type="radio" name="m-67468672" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/6746867266f04bf5aed3b4f0a6df278c/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/6746867266f04bf5aed3b4f0a6df278c/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="ecbab41a56c24b7fa88203f415b56d5a" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Enternity Demon</strong> <span class="mono">ecbab41a56c24b7fa88203f415b56d5a</span> <span class="meta">50,026 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>27.11</strong> · S2 <strong>28.95</strong> · S3 <strong>29.24</strong> · S4 <strong>30.68</strong> · S5 <strong>30.81</strong> · 主运行 <strong>30.33</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/ecbab41a56c24b7fa88203f415b56d5a/thumb.jpg" alt="ecbab41a56c24b7fa88203f415b56d5a 缩略图" width="480" height="480"><canvas aria-label="ecbab41a56c24b7fa88203f415b56d5a 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-ecbab41a" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-ecbab41a"> 单视图</label><label><input type="checkbox" class="wire" id="wire-ecbab41a"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-ecbab41a" value="0" checked> GT</label><label><input type="radio" name="m-ecbab41a" value="1"> S1</label><label><input type="radio" name="m-ecbab41a" value="2"> S2</label><label><input type="radio" name="m-ecbab41a" value="3"> S3</label><label><input type="radio" name="m-ecbab41a" value="4"> S4</label><label><input type="radio" name="m-ecbab41a" value="5"> S5</label><label><input type="radio" name="m-ecbab41a" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/ecbab41a56c24b7fa88203f415b56d5a/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="53bf4971eccb4d5dbe20db083919c44d" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Hello Neighbor</strong> <span class="mono">53bf4971eccb4d5dbe20db083919c44d</span> <span class="meta">23,610 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>22.12</strong> · S2 <strong>24.12</strong> · S3 <strong>25.20</strong> · S4 <strong>26.21</strong> · S5 <strong>26.46</strong> · 主运行 <strong>25.37</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/53bf4971eccb4d5dbe20db083919c44d/thumb.jpg" alt="53bf4971eccb4d5dbe20db083919c44d 缩略图" width="480" height="480"><canvas aria-label="53bf4971eccb4d5dbe20db083919c44d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-53bf4971" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-53bf4971"> 单视图</label><label><input type="checkbox" class="wire" id="wire-53bf4971"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-53bf4971" value="0" checked> GT</label><label><input type="radio" name="m-53bf4971" value="1"> S1</label><label><input type="radio" name="m-53bf4971" value="2"> S2</label><label><input type="radio" name="m-53bf4971" value="3"> S3</label><label><input type="radio" name="m-53bf4971" value="4"> S4</label><label><input type="radio" name="m-53bf4971" value="5"> S5</label><label><input type="radio" name="m-53bf4971" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/53bf4971eccb4d5dbe20db083919c44d/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/53bf4971eccb4d5dbe20db083919c44d/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="e610ab728a124989882c209d764f046d" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>舞蹈面具</strong> <span class="mono">e610ab728a124989882c209d764f046d</span> <span class="meta">8,046 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>23.57</strong> · S2 <strong>25.21</strong> · S3 <strong>25.79</strong> · S4 <strong>26.86</strong> · S5 <strong>27.39</strong> · 主运行 <strong>26.21</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/e610ab728a124989882c209d764f046d/thumb.jpg" alt="e610ab728a124989882c209d764f046d 缩略图" width="480" height="480"><canvas aria-label="e610ab728a124989882c209d764f046d 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-e610ab72" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-e610ab72"> 单视图</label><label><input type="checkbox" class="wire" id="wire-e610ab72"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-e610ab72" value="0" checked> GT</label><label><input type="radio" name="m-e610ab72" value="1"> S1</label><label><input type="radio" name="m-e610ab72" value="2"> S2</label><label><input type="radio" name="m-e610ab72" value="3"> S3</label><label><input type="radio" name="m-e610ab72" value="4"> S4</label><label><input type="radio" name="m-e610ab72" value="5"> S5</label><label><input type="radio" name="m-e610ab72" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/e610ab728a124989882c209d764f046d/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/e610ab728a124989882c209d764f046d/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/e610ab728a124989882c209d764f046d/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/e610ab728a124989882c209d764f046d/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/e610ab728a124989882c209d764f046d/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/e610ab728a124989882c209d764f046d/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/e610ab728a124989882c209d764f046d/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/e610ab728a124989882c209d764f046d/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div>
+<div class="case" data-uid="9a77cdf9dac043039d516fc3a764e8f5" data-names="gt_dil,recon_prog_s1,recon_prog_s2,recon_prog_s3,recon_prog_s4,recon_prog_s5,recon_main50k">
+<div class="casehead"><div><strong>Dog</strong> <span class="mono">9a77cdf9dac043039d516fc3a764e8f5</span> <span class="meta">33,384 面 · held-out</span></div>
+<div class="meta">4 视角渲染 albedo PSNR：S1 <strong>27.42</strong> · S2 <strong>27.87</strong> · S3 <strong>28.44</strong> · S4 <strong>29.66</strong> · S5 <strong>30.42</strong> · 主运行 <strong>29.69</strong> dB</div></div>
+<div class="canvaswrap"><img class="poster" src="cases/9a77cdf9dac043039d516fc3a764e8f5/thumb.jpg" alt="9a77cdf9dac043039d516fc3a764e8f5 缩略图" width="480" height="480"><canvas aria-label="9a77cdf9dac043039d516fc3a764e8f5 3D 对比"></canvas><div class="loadmsg" hidden>加载中…</div></div>
+<div class="vlabels" style="grid-template-columns:repeat(7,1fr)"><span>GT 原始贴图</span><span>第 1 档末 · 1/1024 · 17.5k</span><span>第 2 档末 · 1/4096 · 32.5k</span><span>第 3 档末 · 1/16384 · 47.5k</span><span>第 4 档末 · 1/32768 · 60k</span><span>第 5 档末 · 1/65536 · 70k</span><span>全程 1/65536 · 50k</span></div>
+<div class="ctrl"><label><input type="checkbox" class="spin" id="spin-9a77cdf9" checked> 自动旋转</label><label><input type="checkbox" class="single" id="single-9a77cdf9"> 单视图</label><label><input type="checkbox" class="wire" id="wire-9a77cdf9"> 显示网格</label>
+<span class="singlesel" hidden><label><input type="radio" name="m-9a77cdf9" value="0" checked> GT</label><label><input type="radio" name="m-9a77cdf9" value="1"> S1</label><label><input type="radio" name="m-9a77cdf9" value="2"> S2</label><label><input type="radio" name="m-9a77cdf9" value="3"> S3</label><label><input type="radio" name="m-9a77cdf9" value="4"> S4</label><label><input type="radio" name="m-9a77cdf9" value="5"> S5</label><label><input type="radio" name="m-9a77cdf9" value="6"> 主运行</label></span>
+<button type="button" class="reset">重置视角</button></div>
+<div class="texpanel"><div class="texlbl"><span>烘焙贴图（GT 的 UV 布局）：真值 / S1 / S2 / S3 / S4 / S5 / 主运行</span><button type="button" class="texzoom">放大</button></div>
+<div class="texpair" style="grid-template-columns:repeat(7,minmax(0,1fr));max-width:none"><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/gt_dil_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/gt_dil_disp.jpg" alt="真值" loading="lazy"></a><figcaption>真值</figcaption></figure>
+<figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s1_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s1_disp.jpg" alt="第 1 档末 · 1/1024 · 17.5k" loading="lazy"></a><figcaption>S1</figcaption></figure><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s2_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s2_disp.jpg" alt="第 2 档末 · 1/4096 · 32.5k" loading="lazy"></a><figcaption>S2</figcaption></figure><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s3_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s3_disp.jpg" alt="第 3 档末 · 1/16384 · 47.5k" loading="lazy"></a><figcaption>S3</figcaption></figure><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s4_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s4_disp.jpg" alt="第 4 档末 · 1/32768 · 60k" loading="lazy"></a><figcaption>S4</figcaption></figure><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s5_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_prog_s5_disp.jpg" alt="第 5 档末 · 1/65536 · 70k" loading="lazy"></a><figcaption>S5</figcaption></figure><figure><a href="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_main50k_disp.jpg" target="_blank" rel="noopener"><img src="cases/9a77cdf9dac043039d516fc3a764e8f5/recon_main50k_disp.jpg" alt="全程 1/65536 · 50k" loading="lazy"></a><figcaption>主运行</figcaption></figure></div></div>
+</div></details>
+<h2 id="s4">4. 升档时看的对比图</h2>
+<p>每次升档依据的那张图：第一列真值，其后是该档最后四个评估快照。第 5 档没有上限，展示的是最新一张。</p>
+<details class="more"><summary>第 1 档（1/1024）· 判断依据：整体渲染图：颜色、大色块、大结构 · 最后一列 17.5k</summary><div class="sheet"><a href="prog/s1_overview_17500.jpg" target="_blank" rel="noopener"><img src="prog/s1_overview_17500.jpg" alt="第 1 档对比图" loading="lazy"></a></div></details><details class="more"><summary>第 2 档（1/4096）· 判断依据：整体渲染图：颜色、大色块、大结构 · 最后一列 32.5k</summary><div class="sheet"><a href="prog/s2_overview_32500_a.jpg" target="_blank" rel="noopener"><img src="prog/s2_overview_32500_a.jpg" alt="第 2 档对比图" loading="lazy"></a><a href="prog/s2_overview_32500_b.jpg" target="_blank" rel="noopener"><img src="prog/s2_overview_32500_b.jpg" alt="第 2 档对比图" loading="lazy"></a></div></details><details class="more"><summary>第 3 档（1/16384）· 判断依据：中等放大：图案的形状和边界 · 最后一列 47.5k</summary><div class="sheet"><a href="prog/s3_medium_47500_a.jpg" target="_blank" rel="noopener"><img src="prog/s3_medium_47500_a.jpg" alt="第 3 档对比图" loading="lazy"></a><a href="prog/s3_medium_47500_b.jpg" target="_blank" rel="noopener"><img src="prog/s3_medium_47500_b.jpg" alt="第 3 档对比图" loading="lazy"></a></div></details><details class="more"><summary>第 4 档（1/32768）· 判断依据：高倍裁剪：文字、细线、锐利边缘 · 最后一列 60k</summary><div class="sheet"><a href="prog/s4_crops_60000_a.jpg" target="_blank" rel="noopener"><img src="prog/s4_crops_60000_a.jpg" alt="第 4 档对比图" loading="lazy"></a><a href="prog/s4_crops_60000_b.jpg" target="_blank" rel="noopener"><img src="prog/s4_crops_60000_b.jpg" alt="第 4 档对比图" loading="lazy"></a></div></details><details class="more" open><summary>第 5 档（1/65536）· 判断依据：高倍裁剪：文字、细线、锐利边缘 · 最后一列 70k</summary><div class="sheet"><a href="prog/s5_crops_70000_a.jpg" target="_blank" rel="noopener"><img src="prog/s5_crops_70000_a.jpg" alt="第 5 档对比图" loading="lazy"></a><a href="prog/s5_crops_70000_b.jpg" target="_blank" rel="noopener"><img src="prog/s5_crops_70000_b.jpg" alt="第 5 档对比图" loading="lazy"></a></div></details>
+<h2 id="s5">5. 目前的判断</h2>
+<p>（1）渐进训练省时间：达到全程 1/65536 主运行 5 万步的渲染 PSNR 和高频还原比例，所需训练时间约 28 小时对 98 小时。（2）每档在它自己的尺度上都有可见的进步，然后走平，升档后下一尺度开始改善。（3）最细一层还没有出现：升到 1/65536 后约一万步内，裁剪图上只有若有若无的变化。若第 5 档继续走平，说明瓶颈不在训练顺序，而在模型对细纹理的表达能力。</p>
+<footer>生成脚本 outputs/report/build_prog_page.py；评估 scripts/prog_monitor.py；训练 scripts/slurm/roundV_prog.sbatch（tritex/train_full.py 的 SPLIT 文件在线换档）；数据：Objaverse 1.0 held-out。</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+  if (!window.THREE) return;
+  const canWebGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
+  if (!canWebGL) return;
+  const NAMES0 = ['gt_dil', 'recon_prog_s1', 'recon_prog_s2', 'recon_prog_s3', 'recon_prog_s4', 'recon_prog_s5', 'recon_main50k'];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function initCase(el) {
+    const uid = el.dataset.uid, NAMES = el.dataset.names ? el.dataset.names.split(',') : NAMES0, canvas = el.querySelector('canvas'), poster = el.querySelector('.poster'), msg = el.querySelector('.loadmsg');
+    msg.hidden = false;
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setScissorTest(true);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50); const HOME = new THREE.Vector3(0.95, 0.55, 1.75); camera.position.copy(HOME);
+    const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = !reduced; controls.dampingFactor = 0.08; controls.target.set(0, 0, 0);
+    const spinBox = el.querySelector('.spin'); if (reduced) spinBox.checked = false;
+    controls.autoRotate = spinBox.checked; controls.autoRotateSpeed = 1.2; let resumeT = null;
+    controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(resumeT); });
+    controls.addEventListener('end', () => { clearTimeout(resumeT); resumeT = setTimeout(() => { controls.autoRotate = spinBox.checked; }, 3000); });
+    spinBox.addEventListener('change', () => { controls.autoRotate = spinBox.checked; });
+    const tl = new THREE.TextureLoader(); const tex = NAMES.map(n => { const t = tl.load(`cases/${uid}/${n}.jpg`, () => render()); t.encoding = THREE.sRGBEncoding; t.flipY = false; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; });
+    const unlit = tex.map(t => new THREE.MeshBasicMaterial({ map: t, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }));
+    const wireMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0x111111, transparent: true, opacity: 0.45, depthWrite: false }); const wires = [];
+    const wireBox = el.querySelector('.wire'); wireBox.addEventListener('change', () => { wires.forEach(w => { w.visible = wireBox.checked; }); needs = true; });
+    let mesh = null, single = false, which = 0, visible = true, needs = true;
+    new THREE.GLTFLoader().load(`cases/${uid}/geom.glb`, g => {
+      const ms = []; g.scene.traverse(o => { if (o.isMesh) ms.push(o); });   // collect first: adding children inside traverse() recurses into them
+      ms.forEach(o => { if (!mesh) mesh = o; o.material = unlit[0]; const w = new THREE.Mesh(o.geometry, wireMat); w.visible = wireBox.checked; wires.push(w); o.add(w); });
+      scene.add(g.scene); poster.hidden = true; msg.hidden = true; needs = true;
+    }, undefined, () => { msg.textContent = '模型加载失败，显示缩略图'; });
+    function size() {
+      const w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+      if (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio())) renderer.setSize(w, h, false);
+      return [w, h];
+    }
+    function render() {
+      const wh = size(); if (!wh || !mesh) return; const [w, h] = wh; const mats = unlit;
+      if (single) {
+        camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setViewport(0, 0, w, h); renderer.setScissor(0, 0, w, h); mesh.material = mats[which]; renderer.render(scene, camera);
+      } else {
+        const NP = NAMES.length, vw = Math.floor(w / NP); camera.aspect = vw / h; camera.updateProjectionMatrix();
+        for (let i = 0; i < NP; i++) { renderer.setViewport(i * vw, 0, vw, h); renderer.setScissor(i * vw, 0, vw, h); mesh.material = mats[i]; renderer.render(scene, camera); }
+      }
+    }
+    function loop() { if (!visible) return; controls.update(); render(); requestAnimationFrame(loop); }
+    controls.addEventListener('change', () => { needs = true; });
+    const sel = el.querySelector('.singlesel'); el.querySelector('.single').addEventListener('change', e => { single = e.target.checked; sel.hidden = !single; el.querySelector('.vlabels').style.visibility = single ? 'hidden' : 'visible'; });
+    sel.querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', e => { which = +e.target.value; }));
+    el.querySelector('.reset').addEventListener('click', () => { camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update(); });
+    new ResizeObserver(() => { needs = true; }).observe(canvas);
+    const io = new IntersectionObserver(es => { es.forEach(x => { const was = visible; visible = x.isIntersecting; if (visible && !was) loop(); }); }, { rootMargin: '200px' });
+    io.observe(el); loop();
+  }
+  const pending = new IntersectionObserver(es => { es.forEach(x => { if (x.isIntersecting) { pending.unobserve(x.target); initCase(x.target); } }); }, { rootMargin: '600px' });
+  document.querySelectorAll('.case').forEach(el => pending.observe(el));
+})();
+document.querySelectorAll('.texzoom').forEach(b => b.addEventListener('click', () => { const g = b.closest('.texpanel').querySelector('.texpair'); const big = g.classList.toggle('big'); b.textContent = big ? '缩小' : '放大'; }));
+</script>
+
+<script>(function(){var L=[].slice.call(document.querySelectorAll('.sitenav .secrow a[href^="#"]'));if(!L.length)return;var H=L.map(function(a){return document.getElementById(a.getAttribute('href').slice(1))});
+function upd(){var y=window.scrollY+120,k=-1;for(var i=0;i<H.length;i++){if(H[i]&&H[i].offsetTop<=y)k=i}L.forEach(function(a,i){a.classList.toggle('on',i===k)})}
+window.addEventListener('scroll',upd,{passive:true});window.addEventListener('load',upd);upd()})()</script></body></html>
